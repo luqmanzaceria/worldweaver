@@ -8,6 +8,13 @@ const GenerationPanel: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'running' | 'complete' | 'cancelled'>('idle');
   const [events, setEvents] = useState<BlenderGenerationEvent[]>([]);
   const cancelRef = useRef<() => void>(() => undefined);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [events]);
 
   const handleGenerate = useCallback(async () => {
     setStatus('running');
@@ -81,7 +88,7 @@ const GenerationPanel: React.FC = () => {
 
       <div className="mt-4 rounded-md border border-zinc-800 bg-zinc-950/50 p-3">
         <div className="mb-2 text-xs uppercase tracking-wide text-zinc-500">Blender stream</div>
-        <div className="max-h-40 space-y-1 overflow-y-auto text-xs text-zinc-300">
+        <div ref={scrollRef} className="max-h-40 space-y-1 overflow-y-auto text-xs text-zinc-300">
           {events.length === 0 && (
             <div className="text-zinc-600">No generation events yet.</div>
           )}
