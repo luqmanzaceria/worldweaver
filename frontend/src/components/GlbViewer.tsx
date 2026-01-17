@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, KeyboardControls, PointerLockControls, Box, Text, useKeyboardControls } from '@react-three/drei';
+import { useGLTF, KeyboardControls, PointerLockControls, Box, Text, useKeyboardControls, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Controls mapping
@@ -72,13 +72,34 @@ function ErrorFallback() {
     )
 }
 
+function BlenderAxes() {
+    return (
+        <group>
+            {/* X Axis - Red */}
+            <line>
+                <bufferGeometry attach="geometry" {...new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-1000, 0, 0), new THREE.Vector3(1000, 0, 0)])} />
+                <lineBasicMaterial attach="material" color="#ff3333" opacity={0.6} transparent linewidth={2} />
+            </line>
+            {/* Z Axis (acting as Y in Blender's visual style) - Green */}
+            <line>
+                <bufferGeometry attach="geometry" {...new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -1000), new THREE.Vector3(0, 0, 1000)])} />
+                <lineBasicMaterial attach="material" color="#55ff55" opacity={0.6} transparent linewidth={2} />
+            </line>
+        </group>
+    );
+}
+
 const GlbViewer: React.FC = () => {
   return (
-    <div className="w-full h-full bg-gray-900 relative">
+    <div className="w-full h-full relative" style={{ backgroundColor: '#e5e5e5' }}>
         <KeyboardControls map={controls}>
-            <Canvas camera={{ position: [0, 2, 5], fov: 75 }}>
+            <Canvas camera={{ position: [5, 5, 5], fov: 50 }}>
+                {/* Blender Default Background Color */}
+                <color attach="background" args={['#e5e5e5']} />
+                
                 <ambientLight intensity={0.5} />
                 <directionalLight position={[10, 10, 5]} intensity={1} />
+                <hemisphereLight intensity={0.3} groundColor="#e5e5e5" />
                 
                 <Suspense fallback={<Placeholder />}>
                     <ModelErrorBoundary fallback={<ErrorFallback />}>
@@ -89,14 +110,39 @@ const GlbViewer: React.FC = () => {
                 <PointerLockControls />
                 <WasdControls />
                 
-                <gridHelper args={[20, 20]} />
+                {/* Blender-like Grid */}
+                <Grid 
+                    infiniteGrid 
+                    fadeDistance={50} 
+                    sectionColor="#888888" 
+                    cellColor="#bbbbbb" 
+                    sectionSize={10}
+                    cellSize={1}
+                    position={[0, -0.01, 0]} 
+                />
+                <BlenderAxes />
+
+                {/* Blender Gizmo - customized to mimic Z-up look (Blue=Up) */}
+                <GizmoHelper alignment="top-right" margin={[80, 80]}>
+                    <GizmoViewport 
+                        axisColors={['#ff3333', '#3333ff', '#55ff55']} 
+                        labelColor="black" 
+                        labels={['X', 'Z', 'Y']}
+                    />
+                </GizmoHelper>
+
             </Canvas>
-            <div className="absolute top-4 left-4 text-white bg-black/50 p-4 rounded pointer-events-none select-none">
-                <h2 className="font-bold mb-2">GLB Viewer</h2>
-                <p>WASD to Move</p>
-                <p>Click to capture mouse (Look around)</p>
-                <p>ESC to release mouse</p>
-                <p className="text-xs mt-2 opacity-70">Loading: /worlds/dummy.glb</p>
+            
+            {/* UI Overlay - Minimal to match Blender's clean look */}
+            <div className="absolute top-4 left-4 text-black/80 font-sans text-sm select-none pointer-events-none">
+                <div className="bg-[#f0f0f0]/80 p-3 rounded border border-black/10 backdrop-blur-sm shadow-sm">
+                    <h2 className="font-bold mb-2 text-gray-800">GLB Viewer</h2>
+                    <ul className="space-y-1 text-xs text-gray-600">
+                        <li><span className="font-mono text-gray-700">WASD</span> Move</li>
+                        <li><span className="font-mono text-gray-700">Click</span> Look</li>
+                        <li><span className="font-mono text-gray-700">ESC</span> Release</li>
+                    </ul>
+                </div>
             </div>
         </KeyboardControls>
     </div>

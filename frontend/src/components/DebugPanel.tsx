@@ -47,14 +47,14 @@ const DebugPanel: React.FC = () => {
         <div className="flex gap-2">
           <button
             onClick={handleTogglePause}
-            className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors border border-white"
           >
             {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
             {isPaused ? 'Resume' : 'Pause'}
           </button>
           <button
             onClick={handleReset}
-            className="p-2 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
+            className="p-2 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors border border-white"
             title="Reset Simulation"
           >
             <RotateCcw className="w-4 h-4" />
