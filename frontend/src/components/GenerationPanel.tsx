@@ -118,7 +118,7 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
               <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
               <div>
                 <div className="font-medium text-zinc-200">{event.message}</div>
-                {event.detail && <div className="text-[11px] text-zinc-500">{event.detail}</div>}
+                {event.detail && <div className="text-[11px] text-zinc-500 whitespace-pre-wrap break-all">{event.detail}</div>}
               </div>
             </div>
           ))}

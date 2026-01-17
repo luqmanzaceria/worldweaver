@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, KeyboardControls, PointerLockControls, Box, Text, useKeyboardControls, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import * as THREE from 'three';
@@ -49,17 +49,17 @@ function WasdControls() {
 }
 
 // Simple Error Boundary for the model
-class ModelErrorBoundary extends React.Component<{ fallback: React.ReactNode, children: React.ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(error: any) { console.error("Model load error:", error); }
+class ModelErrorBoundary extends React.Component<{ fallback: (error: Error | null) => React.ReactNode, children: React.ReactNode }, { hasError: boolean; error: Error | null }> {
+  state = { hasError: false, error: null };
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  componentDidCatch(error: Error) { console.error("Model load error:", error); }
   render() {
-    if (this.state.hasError) return this.props.fallback;
+    if (this.state.hasError) return this.props.fallback(this.state.error);
     return this.props.children;
   }
 }
 
-function ErrorFallback() {
+function ErrorFallback({ error, onRetry }: { error: Error | null, onRetry: () => void }) {
     return (
         <group>
             <Box args={[1, 1, 1]} position={[0, 0.5, 0]}>
@@ -67,6 +67,23 @@ function ErrorFallback() {
             </Box>
             <Text position={[0, 1.5, 0]} color="red" fontSize={0.3} anchorX="center" anchorY="middle">
                 Failed to load GLB
+            </Text>
+            {error && (
+                <Text position={[0, 1.1, 0]} color="white" fontSize={0.18} anchorX="center" anchorY="middle" maxWidth={6}>
+                    {error.message}
+                </Text>
+            )}
+            <Box 
+                args={[1.2, 0.4, 0.1]} 
+                position={[0, 0.5, 0.6]} 
+                onClick={(e) => { e.stopPropagation(); onRetry(); }}
+                onPointerOver={() => document.body.style.cursor = 'pointer'}
+                onPointerOut={() => document.body.style.cursor = 'auto'}
+            >
+                <meshStandardMaterial color="#444" />
+            </Box>
+            <Text position={[0, 0.5, 0.66]} color="white" fontSize={0.15} anchorX="center" anchorY="middle" pointerEvents="none">
+                Retry Load
             </Text>
         </group>
     )
@@ -90,10 +107,13 @@ function BlenderAxes() {
 }
 
 const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
+  const [key, setKey] = useState(0);
+  const handleRetry = () => setKey(prev => prev + 1);
+
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: '#e5e5e5' }}>
         <KeyboardControls map={controls}>
-            <Canvas camera={{ position: [5, 5, 5], fov: 50 }}>
+            <Canvas camera={{ position: [5, 5, 5], fov: 50 }} key={key}>
                 {/* Blender Default Background Color */}
                 <color attach="background" args={['#e5e5e5']} />
                 
@@ -102,7 +122,7 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                 <hemisphereLight intensity={0.3} groundColor="#e5e5e5" />
                 
                 <Suspense fallback={<Placeholder />}>
-                    <ModelErrorBoundary fallback={<ErrorFallback />}>
+                    <ModelErrorBoundary fallback={(error) => <ErrorFallback error={error} onRetry={handleRetry} />}>
                        <AsyncModel url={url} />
                     </ModelErrorBoundary>
                 </Suspense>
