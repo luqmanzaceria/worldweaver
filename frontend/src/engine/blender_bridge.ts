@@ -1,10 +1,12 @@
 export interface BlenderGenerationRequest {
   prompt: string;
+  sessionId?: string;
+  parentVersionId?: string;
 }
 
 export type BlenderGenerationEvent =
   | { type: 'status'; message: string; detail?: string }
-  | { type: 'asset'; message: string; detail?: string; url?: string }
+  | { type: 'asset'; message: string; detail?: string; url?: string; sessionId?: string; versionId?: string; history?: { id: string; prompt: string }[] }
   | { type: 'complete'; message: string; detail?: string };
 
 const USE_LOCAL_SERVER = import.meta.env.VITE_BLENDER_LOCAL === 'true';
@@ -12,8 +14,6 @@ const LOCAL_API_URL = import.meta.env.VITE_BLENDER_API_URL ?? 'http://localhost:
 
 /**
  * Frontend-facing bridge for Blender generation.
- * The browser cannot execute Blender, so this exposes a streaming interface
- * that can be wired to MCP or a backend worker later.
  */
 export function createBlenderGenerationStream(request: BlenderGenerationRequest): {
   stream: AsyncGenerator<BlenderGenerationEvent>;
@@ -41,10 +41,6 @@ export function createBlenderGenerationStream(request: BlenderGenerationRequest)
 
     const steps: BlenderGenerationEvent[] = [
       { type: 'status', message: 'Queued generation job', detail: `Prompt: ${prompt}` },
-      { type: 'status', message: 'Spawning Blender worker', detail: 'Preparing headless pipeline' },
-      { type: 'status', message: 'Blocking out scene', detail: 'Generating terrain and landmarks' },
-      { type: 'status', message: 'Placing assets', detail: 'Applying layout constraints' },
-      { type: 'status', message: 'Baking lighting probes', detail: 'Optimizing for runtime' },
       { type: 'status', message: 'Exporting GLB', detail: 'Packaging assets' },
       { type: 'asset', message: 'GLB artifact ready', detail: 'Awaiting ingestion', url: '/assets/glb/generated_world.glb' },
       { type: 'complete', message: 'Generation complete', detail: 'Ready to import into the scene.' }
@@ -84,27 +80,15 @@ function createLocalServerStream(request: BlenderGenerationRequest): {
       return;
     }
 
-    yield { type: 'status', message: 'Contacting local Blender server', detail: LOCAL_API_URL };
-    try {
-      const health = await fetchWithTimeout(`${LOCAL_API_URL}/health`, 1500);
-      if (!health.ok) {
-        const text = await health.text();
-        yield { type: 'status', message: 'Local server not ready', detail: text };
-        yield { type: 'complete', message: 'Generation failed' };
-        return;
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Health check failed';
-      yield { type: 'status', message: 'Local server not reachable', detail: message };
-      yield { type: 'complete', message: 'Generation failed' };
-      return;
-    }
-
     try {
       const response = await fetch(`${LOCAL_API_URL}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ 
+          prompt, 
+          sessionId: request.sessionId,
+          parentVersionId: request.parentVersionId
+        })
       });
 
       if (!response.ok) {
@@ -116,11 +100,6 @@ function createLocalServerStream(request: BlenderGenerationRequest): {
 
       const data = await response.json();
       jobId = data.jobId;
-      if (!jobId) {
-        yield { type: 'status', message: 'Generation request failed', detail: 'Missing jobId' };
-        yield { type: 'complete', message: 'Generation failed' };
-        return;
-      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to reach local server';
       yield { type: 'status', message: 'Generation request failed', detail: message };
@@ -182,14 +161,3 @@ function createLocalServerStream(request: BlenderGenerationRequest): {
     }
   };
 }
-
-async function fetchWithTimeout(url: string, timeoutMs: number) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-

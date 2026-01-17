@@ -14,6 +14,10 @@ const workspaceRoot = dirname(__dirname);
 const frontendPublicDir = join(workspaceRoot, 'frontend', 'public', 'generated');
 const scriptPath = join(workspaceRoot, 'tools', 'blender', 'generate_world.py');
 
+// Store session histories: sessionId -> { history: [], versions: [] }
+// A version is { id, prompt, glbUrl, blendPath }
+const sessions = new Map();
+
 loadEnvLocal();
 
 const BLENDER_PATH = process.env.BLENDER_PATH ?? 'blender';
@@ -30,15 +34,21 @@ function getMcpClient() {
   return mcpClientPromise;
 }
 
-function createJob(prompt) {
+function createJob(prompt, sessionId, parentVersionId) {
   const id = crypto.randomBytes(8).toString('hex');
   const outputName = `worldweaver_${id}.glb`;
   const outputPath = join(frontendPublicDir, outputName);
+  const blendName = `worldweaver_${id}.blend`;
+  const blendPath = join(frontendPublicDir, blendName);
+  
   const job = {
     id,
     prompt,
+    sessionId: sessionId || crypto.randomBytes(4).toString('hex'),
+    parentVersionId,
     outputName,
     outputPath,
+    blendPath,
     status: 'queued',
     listeners: new Set(),
     events: [],
@@ -134,7 +144,9 @@ async function runMcpJob(job) {
     await client.ensureInitialized();
 
     const toolsResponse = await client.listTools();
-    const tools = toolsResponse.tools || [];
+    // Filter tools to only include scene-building essentials to save tokens
+    const essentialTools = ['execute_blender_code', 'get_scene_info', 'search_polyhaven', 'import_asset', 'list_objects'];
+    const tools = (toolsResponse.tools || []).filter(t => essentialTools.includes(t.name));
 
     const apiKey = process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY;
     const model = process.env.CLAUDE_MODEL ?? 'claude-3-haiku-20240307';
@@ -143,21 +155,56 @@ async function runMcpJob(job) {
       throw new Error('Claude API key missing (CLAUDE_API_KEY). Check your .env.local in the root.');
     }
 
+    // Initialize or retrieve session
+    if (!sessions.has(job.sessionId)) {
+      sessions.set(job.sessionId, { history: [], versions: [] });
+    }
+    const session = sessions.get(job.sessionId);
+
+    // If we have a parent version, restore its state AND its conversation history
+    if (job.parentVersionId) {
+      const parentIndex = session.versions.findIndex(v => v.id === job.parentVersionId);
+      const parentVersion = session.versions[parentIndex];
+      
+      if (parentVersion && existsSync(parentVersion.blendPath)) {
+        sendEvent(job, { type: 'status', message: 'Restoring state', detail: `Branching from ${job.parentVersionId}` });
+        const restoreCode = `import bpy; bpy.ops.wm.open_mainfile(filepath="${parentVersion.blendPath.replace(/\\/g, '/')}")`;
+        await client.callTool('execute_blender_code', { code: restoreCode, user_prompt: "Restore state" });
+        
+        // Truncate conversation history to the point where this version was created
+        if (parentVersion.historyIndex !== undefined) {
+          session.history = session.history.slice(0, parentVersion.historyIndex);
+        }
+        // Truncate versions to the point where we branched
+        session.versions = session.versions.slice(0, parentIndex + 1);
+      }
+    } else if (session.versions.length > 0) {
+      // If no parentVersionId is provided but session has history, it means we are editing the first message
+      // or explicitly starting over. Clear everything.
+      sendEvent(job, { type: 'status', message: 'Starting fresh branch' });
+      session.history = [];
+      session.versions = [];
+    }
+
     sendEvent(job, { type: 'status', message: 'Claude agent starting', detail: `Model: ${model}` });
 
+    const isFollowUp = !!job.parentVersionId || session.history.length > 0;
+
+    // Build the messages array using the session history
     const messages = [
+      ...session.history,
       {
         role: 'user',
-        content: `Prompt: ${job.prompt}\n\nPlease build this scene in Blender. Start by clearing the scene, then create the objects and materials requested. You can use search tools to find assets or execute_blender_code for custom geometry. When finished, say "SCENE_COMPLETE".`
+        content: job.prompt
       }
     ];
 
-    const system = `You are a professional Blender artist. Use the provided tools to create complex 3D scenes.
-Always clear the scene first using execute_blender_code with 'import bpy; bpy.ops.object.select_all(action="SELECT"); bpy.ops.object.delete()'.
-When you are done, end your response with "SCENE_COMPLETE".`;
+    const system = `You are a professional Blender artist.
+${isFollowUp ? 'You are EDITING an existing scene. The previous conversation contains the context of what has been built.' : 'Clear the scene first with "import bpy; bpy.ops.object.select_all(action=\'SELECT\'); bpy.ops.object.delete()"'}
+Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
 
     let turn = 0;
-    const maxTurns = 8;
+    const maxTurns = 6; 
 
     while (turn < maxTurns) {
       turn++;
@@ -170,18 +217,30 @@ When you are done, end your response with "SCENE_COMPLETE".`;
         },
         body: JSON.stringify({
           model,
-          max_tokens: 4000,
-          system,
-          tools: tools.map(t => ({
+          max_tokens: 1500,
+          system: [
+            {
+              type: 'text',
+              text: system,
+              cache_control: { type: 'ephemeral' } // Cache the system prompt
+            }
+          ],
+          tools: tools.map((t, i) => ({
             name: t.name,
-            description: t.description,
-            input_schema: t.inputSchema
+            description: t.description.slice(0, 500),
+            input_schema: t.inputSchema,
+            // Cache the tools definition on the last tool to cover the whole block
+            ...(i === tools.length - 1 ? { cache_control: { type: 'ephemeral' } } : {})
           })),
           messages
         })
       });
 
-      if (!response.ok) throw new Error(`Claude API: ${await response.text()}`);
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('[Claude API Error]', errText);
+        throw new Error(`Claude API: ${errText}`);
+      }
 
       const result = await response.json();
       messages.push({ role: 'assistant', content: result.content });
@@ -191,17 +250,21 @@ When you are done, end your response with "SCENE_COMPLETE".`;
         const text = result.content.find(c => c.type === 'text')?.text;
         if (text) sendEvent(job, { type: 'status', message: 'Claude', detail: text });
         if (text?.includes('SCENE_COMPLETE')) break;
-        // If Claude stops without saying complete, we force break
         if (turn >= 2) break; 
         continue;
       }
 
       const toolResults = [];
       for (const toolCall of toolCalls) {
-        sendEvent(job, { type: 'status', message: `Tool Call: ${toolCall.name}` });
+        sendEvent(job, { type: 'status', message: `Tool: ${toolCall.name}` });
         try {
           const toolOutput = await client.callTool(toolCall.name, toolCall.input);
-          toolResults.push({ type: 'tool_result', tool_use_id: toolCall.id, content: JSON.stringify(toolOutput) });
+          // Truncate tool output to avoid token bloat
+          let outputStr = JSON.stringify(toolOutput);
+          if (outputStr.length > 2000) {
+            outputStr = outputStr.slice(0, 2000) + "... (truncated)";
+          }
+          toolResults.push({ type: 'tool_result', tool_use_id: toolCall.id, content: outputStr });
         } catch (e) {
           toolResults.push({ type: 'tool_result', tool_use_id: toolCall.id, content: `Error: ${e.message}`, is_error: true });
         }
@@ -209,24 +272,58 @@ When you are done, end your response with "SCENE_COMPLETE".`;
       messages.push({ role: 'user', content: toolResults });
     }
 
-    sendEvent(job, { type: 'status', message: 'Finalizing and exporting GLB' });
-    const exportCode = `
+    // Update session history for next time
+    // We only keep the original prompts and final assistant responses.
+    // We STRIP intermediate tool use/results to avoid token bloat and malformed history.
+    const turnHistory = [];
+    for (const m of messages) {
+      // Keep original user prompts
+      if (m.role === 'user' && typeof m.content === 'string') {
+        turnHistory.push(m);
+      }
+      // Keep final assistant responses (the ones without tool calls)
+      if (m.role === 'assistant' && Array.isArray(m.content)) {
+        const hasToolUse = m.content.some(c => c.type === 'tool_use');
+        if (!hasToolUse) {
+          turnHistory.push(m);
+        }
+      }
+    }
+    // Keep only the last 3 turns (6 messages)
+    session.history = turnHistory.slice(-6);
+
+    sendEvent(job, { type: 'status', message: 'Finalizing and exporting' });
+    const finalizeCode = `
 import bpy
 try:
-    # Ensure any active mode is exited
     if bpy.context.object and bpy.context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
+    # Save .blend for future reverts
+    bpy.ops.wm.save_as_mainfile(filepath="${job.blendPath.replace(/\\/g, '/')}")
+    # Export GLB for viewer
     bpy.ops.export_scene.gltf(filepath="${job.outputPath.replace(/\\/g, '/')}", export_format="GLB", export_apply=True, export_yup=True)
-    print("DONE_EXPORT")
+    print("DONE_FINALIZE")
 except Exception as e:
-    print(f"EXPORT_FAIL: {e}")
+    print(f"FINALIZE_FAIL: {e}")
 `;
-    await client.callTool('execute_blender_code', { code: exportCode, user_prompt: job.prompt });
+    await client.callTool('execute_blender_code', { code: finalizeCode, user_prompt: job.prompt });
+
+    const version = {
+      id: job.id,
+      prompt: job.prompt,
+      glbUrl: `/generated/${job.outputName}`,
+      blendPath: job.blendPath,
+      historyIndex: session.history.length // Store where we are in the conversation
+    };
+    session.versions.push(version);
 
     sendEvent(job, {
       type: 'asset',
       message: 'GLB artifact ready',
-      url: `/generated/${job.outputName}`
+      url: version.glbUrl,
+      sessionId: job.sessionId,
+      versionId: version.id,
+      history: session.versions.map(v => ({ id: v.id, prompt: v.prompt }))
     });
     sendEvent(job, { type: 'complete', message: 'Generation complete' });
     job.status = 'complete';
@@ -266,11 +363,11 @@ const server = http.createServer(async (req, res) => {
     req.on('data', c => body += c);
     req.on('end', () => {
       try {
-        const { prompt } = JSON.parse(body);
-        const job = createJob(prompt);
+        const { prompt, sessionId, parentVersionId } = JSON.parse(body);
+        const job = createJob(prompt, sessionId, parentVersionId);
         runJob(job).catch(e => sendEvent(job, { type: 'complete', message: 'Failed', detail: e.message }));
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify({ jobId: job.id }));
+        res.end(JSON.stringify({ jobId: job.id, sessionId: job.sessionId }));
       } catch (e) {
         res.writeHead(400, { 'Access-Control-Allow-Origin': '*' });
         res.end(e.message);
@@ -311,7 +408,7 @@ const server = http.createServer(async (req, res) => {
     const filePath = join(frontendPublicDir, url.pathname.replace('/generated/', ''));
     try {
       const data = await readFile(filePath);
-      res.writeHead(200, { 'Content-Type': 'model/gltf-binary', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Access-Control-Allow-Origin': '*' });
       res.end(data);
     } catch {
       res.writeHead(404, { 'Access-Control-Allow-Origin': '*' });
