@@ -1,0 +1,21 @@
+{
+  "name": "example_scene",
+  "entities": [
+    {
+      "id": "player_1",
+      "type": "agent",
+      "position": { "x": 0, "y": 0.5, "z": 0 },
+      "controller": "keyboard"
+    },
+    {
+      "id": "cube_1",
+      "type": "obstacle",
+      "position": { "x": 5, "y": 0.5, "z": 5 }
+    },
+    {
+      "id": "cube_2",
+      "type": "obstacle",
+      "position": { "x": -5, "y": 0.5, "z": -5 }
+    }
+  ]
+}
