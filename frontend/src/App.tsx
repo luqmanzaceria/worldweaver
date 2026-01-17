@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 // import Canvas3D from './components/Canvas3D';
 import GlbViewer from './components/GlbViewer';
 import DebugPanel from './components/DebugPanel';
@@ -6,12 +6,14 @@ import GenerationPanel from './components/GenerationPanel';
 import McpStatusPanel from './components/McpStatusPanel';
 
 const App: React.FC = () => {
+  const [assetUrl, setAssetUrl] = useState('/worlds/dummy.glb');
+
   return (
     <div className="relative w-full h-full">
       {/* <Canvas3D /> */}
-      <GlbViewer />
+      <GlbViewer url={assetUrl} />
       <DebugPanel />
-      <GenerationPanel />
+      <GenerationPanel onAsset={setAssetUrl} />
       <McpStatusPanel />
     </div>
   );

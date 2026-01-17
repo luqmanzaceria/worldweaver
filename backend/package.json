@@ -1,0 +1,10 @@
+{
+  "name": "worldweaver-backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "blender:local": "node local_server.mjs"
+  }
+}
+

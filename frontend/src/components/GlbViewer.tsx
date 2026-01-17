@@ -89,7 +89,7 @@ function BlenderAxes() {
     );
 }
 
-const GlbViewer: React.FC = () => {
+const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: '#e5e5e5' }}>
         <KeyboardControls map={controls}>
@@ -103,7 +103,7 @@ const GlbViewer: React.FC = () => {
                 
                 <Suspense fallback={<Placeholder />}>
                     <ModelErrorBoundary fallback={<ErrorFallback />}>
-                       <AsyncModel url="/worlds/dummy.glb" />
+                       <AsyncModel url={url} />
                     </ModelErrorBoundary>
                 </Suspense>
                 
@@ -142,6 +142,7 @@ const GlbViewer: React.FC = () => {
                         <li><span className="font-mono text-gray-700">Click</span> Look</li>
                         <li><span className="font-mono text-gray-700">ESC</span> Release</li>
                     </ul>
+                    <p className="text-xs mt-2 opacity-70">File: {url}</p>
                 </div>
             </div>
         </KeyboardControls>

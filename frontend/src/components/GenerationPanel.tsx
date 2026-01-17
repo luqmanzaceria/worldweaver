@@ -3,12 +3,18 @@ import { BlenderGenerationEvent, createBlenderGenerationStream } from '../engine
 import { getSimulation } from '../engine/simulation_instance';
 import { SceneLoader } from '../engine/scene_loader';
 
-const GenerationPanel: React.FC = () => {
+interface GenerationPanelProps {
+  onAsset?: (url: string) => void;
+}
+
+const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
   const [prompt, setPrompt] = useState('A small coastal village with docks and warehouses');
   const [status, setStatus] = useState<'idle' | 'running' | 'complete' | 'cancelled'>('idle');
   const [events, setEvents] = useState<BlenderGenerationEvent[]>([]);
   const cancelRef = useRef<() => void>(() => undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const localMode = import.meta.env.VITE_BLENDER_LOCAL === 'true';
+  const apiBase = import.meta.env.VITE_BLENDER_API_URL ?? 'http://localhost:8787';
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -27,11 +33,22 @@ const GenerationPanel: React.FC = () => {
     for await (const event of stream) {
       setEvents(prev => [...prev, event]);
       if (event.type === 'asset' && event.url) {
-        try {
-          await sceneLoader.loadGeneratedAsset(event.url, getSimulation());
+        if (!localMode) {
           setEvents(prev => [
             ...prev,
-            { type: 'status', message: 'Loaded generated asset', detail: event.url }
+            { type: 'status', message: 'Mock mode: no local asset to load', detail: event.url }
+          ]);
+          continue;
+        }
+        const resolvedUrl = event.url.startsWith('http')
+          ? event.url
+          : `${apiBase}${event.url.startsWith('/') ? '' : '/'}${event.url}`;
+        onAsset?.(resolvedUrl);
+        try {
+          await sceneLoader.loadGeneratedAsset(resolvedUrl, getSimulation());
+          setEvents(prev => [
+            ...prev,
+            { type: 'status', message: 'Loaded generated asset', detail: resolvedUrl }
           ]);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Unknown error';
@@ -58,6 +75,9 @@ const GenerationPanel: React.FC = () => {
       <p className="mt-2 text-sm text-zinc-300">
         Describe the environment to generate. The stream reflects the Blender job progress.
       </p>
+      <div className="mt-2 rounded border border-zinc-800 bg-zinc-950/50 px-2 py-1 text-[11px] text-zinc-400">
+        Mode: {localMode ? 'Local Blender' : 'Mock'} · API: {apiBase}
+      </div>
 
       <div className="mt-3">
         <label className="text-xs text-zinc-400">Generation prompt</label>

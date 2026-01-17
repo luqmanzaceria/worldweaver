@@ -33,6 +33,12 @@ export function createBlenderGenerationStream(request: BlenderGenerationRequest)
       return;
     }
 
+    yield {
+      type: 'status',
+      message: 'Using mock generator',
+      detail: 'Set VITE_BLENDER_LOCAL=true to use the local Blender server.'
+    };
+
     const steps: BlenderGenerationEvent[] = [
       { type: 'status', message: 'Queued generation job', detail: `Prompt: ${prompt}` },
       { type: 'status', message: 'Spawning Blender worker', detail: 'Preparing headless pipeline' },
@@ -79,6 +85,21 @@ function createLocalServerStream(request: BlenderGenerationRequest): {
     }
 
     yield { type: 'status', message: 'Contacting local Blender server', detail: LOCAL_API_URL };
+    try {
+      const health = await fetchWithTimeout(`${LOCAL_API_URL}/health`, 1500);
+      if (!health.ok) {
+        const text = await health.text();
+        yield { type: 'status', message: 'Local server not ready', detail: text };
+        yield { type: 'complete', message: 'Generation failed' };
+        return;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Health check failed';
+      yield { type: 'status', message: 'Local server not reachable', detail: message };
+      yield { type: 'complete', message: 'Generation failed' };
+      return;
+    }
+
     try {
       const response = await fetch(`${LOCAL_API_URL}/generate`, {
         method: 'POST',
@@ -160,5 +181,15 @@ function createLocalServerStream(request: BlenderGenerationRequest): {
       eventSource?.close();
     }
   };
+}
+
+async function fetchWithTimeout(url: string, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 

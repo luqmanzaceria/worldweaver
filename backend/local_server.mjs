@@ -3,13 +3,16 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mkdir, readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import crypto from 'node:crypto';
 import { createMcpClient } from './mcp_client.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = dirname(dirname(__dirname));
+const workspaceRoot = dirname(__dirname);
 const publicDir = join(workspaceRoot, 'public', 'generated');
 const scriptPath = join(workspaceRoot, 'tools', 'blender', 'generate_world.py');
+
+loadEnvLocal();
 
 const BLENDER_PATH = process.env.BLENDER_PATH ?? 'blender';
 const PORT = Number(process.env.WW_BLENDER_PORT ?? 8787);
@@ -41,6 +44,32 @@ function createJob(prompt) {
   };
   jobs.set(id, job);
   return job;
+}
+
+function loadEnvLocal() {
+  const envPaths = [join(workspaceRoot, '.env.local'), join(workspaceRoot, '.env')];
+  for (const envPath of envPaths) {
+    try {
+      const content = readFileSync(envPath, 'utf-8');
+      const lines = content.split('\n');
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        const index = line.indexOf('=');
+        if (index === -1) continue;
+        const key = line.slice(0, index).trim();
+        let value = line.slice(index + 1).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        if (!process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    } catch {
+      // Ignore missing env files
+    }
+  }
 }
 
 function sendEvent(job, event) {
@@ -106,20 +135,25 @@ async function runMcpJob(job) {
   sendEvent(job, { type: 'status', message: 'Claude code', detail: claudeCode.slice(0, 2000) });
 
   try {
-    await client.callTool('execute_blender_code', {
+    const result = await client.callTool('execute_blender_code', {
       code: python,
       user_prompt: job.prompt
     });
+    
+    // Check if result indicates success
+    sendEvent(job, { type: 'status', message: 'Blender execution finished', detail: JSON.stringify(result) });
+
     try {
       const sceneInfo = await client.callTool('get_scene_info', { user_prompt: job.prompt });
       sendEvent(job, { type: 'status', message: 'Scene updated', detail: JSON.stringify(sceneInfo) });
     } catch (error) {
       sendEvent(job, {
         type: 'status',
-        message: 'Scene updated (info unavailable)',
+        message: 'Scene info unavailable',
         detail: error instanceof Error ? error.message : String(error)
       });
     }
+    
     sendEvent(job, { type: 'status', message: 'Exported GLB via MCP' });
     sendEvent(job, {
       type: 'asset',
@@ -140,7 +174,7 @@ async function runMcpJob(job) {
 
 async function getClaudeBlenderCode(job, prompt) {
   const apiKey = process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY;
-  const model = process.env.CLAUDE_MODEL ?? 'claude-3-5-sonnet-20241022';
+  const model = process.env.CLAUDE_MODEL ?? 'claude-3-haiku-20240307';
   if (!apiKey) {
     sendEvent(job, { type: 'status', message: 'Claude API key missing', detail: 'Falling back to basic scene.' });
     return defaultBlenderCode(prompt);
@@ -150,6 +184,13 @@ async function getClaudeBlenderCode(job, prompt) {
 - Do not include markdown fences.
 - Do not call export or save. We'll handle exporting.
 - Use only bpy, math, random.
+- Available mesh primitives:
+  bpy.ops.mesh.primitive_plane_add(size=20, location=(0,0,0))
+  bpy.ops.mesh.primitive_cube_add(size=2, location=(0,0,0))
+  bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(0,0,0))
+  bpy.ops.mesh.primitive_cylinder_add(radius=1, depth=2, location=(0,0,0))
+  bpy.ops.mesh.primitive_cone_add(radius1=1, depth=2, location=(0,0,0))
+- For pyramids, use primitive_cone_add(vertices=4).
 - Keep it deterministic by seeding random with a fixed integer at the top.
 - Keep object counts reasonable (<80 objects).`;
 
@@ -166,7 +207,7 @@ Create a scene that matches this prompt. Include a ground plane and several dist
       },
       body: JSON.stringify({
         model,
-        max_tokens: 300,
+        max_tokens: 1000,
         temperature: 0.2,
         system,
         messages: [{ role: 'user', content: user }]
@@ -176,7 +217,7 @@ Create a scene that matches this prompt. Include a ground plane and several dist
     if (!response.ok) {
       const text = await response.text();
       sendEvent(job, { type: 'status', message: 'Claude request failed', detail: text });
-      return buildScenePlan(prompt);
+      return defaultBlenderCode(prompt);
     }
 
     const data = await response.json();
@@ -228,14 +269,22 @@ def clear_scene():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete()
 
-clear_scene()
+try:
+    clear_scene()
+    # Claude-generated scene code
+    random.seed(42)
+    
+${claudeCode.split('\n').map(line => '    ' + line).join('\n')}
 
-# Claude-generated scene code
-random.seed(42)
-${claudeCode}
+    bpy.context.scene["ww_prompt"] = "${safePrompt}"
+except Exception as e:
+    print(f"Claude code execution failed: {e}")
 
-bpy.context.scene["ww_prompt"] = "${safePrompt}"
-bpy.ops.export_scene.gltf(filepath="${outputPath}", export_format="GLB", export_apply=True, export_yup=True)
+# Always try to export, even if Claude code partially failed
+try:
+    bpy.ops.export_scene.gltf(filepath="${outputPath}", export_format="GLB", export_apply=True, export_yup=True)
+except Exception as e:
+    print(f"GLB Export failed: {e}")
 `;
 }
 
@@ -324,23 +373,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && url.pathname.startsWith('/generated/')) {
-    const fileName = url.pathname.replace('/generated/', '');
-    const filePath = join(publicDir, fileName);
-    try {
-      const data = await readFile(filePath);
-      res.writeHead(200, {
-        'Content-Type': 'model/gltf-binary',
-        'Access-Control-Allow-Origin': '*'
-      });
-      res.end(data);
-    } catch (error) {
-      res.writeHead(404, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-      res.end(JSON.stringify({ error: 'File not found' }));
-    }
-    return;
-  }
-
   if (req.method === 'POST' && url.pathname.startsWith('/cancel/')) {
     const jobId = url.pathname.split('/')[2];
     const job = jobs.get(jobId);
@@ -380,6 +412,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && url.pathname.startsWith('/generated/')) {
+    const fileName = url.pathname.replace('/generated/', '');
+    const filePath = join(publicDir, fileName);
+    try {
+      const data = await readFile(filePath);
+      res.writeHead(200, {
+        'Content-Type': 'model/gltf-binary',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(data);
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ error: 'File not found' }));
+    }
+    return;
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify({ error: 'Not found' }));
 });
@@ -387,4 +436,3 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`[WorldWeaver] Blender local server running on http://localhost:${PORT}`);
 });
-
