@@ -64,6 +64,7 @@ const GenerationPanel: React.FC = () => {
         <textarea
           value={prompt}
           onChange={event => setPrompt(event.target.value)}
+          onKeyDown={e => e.stopPropagation()} // Prevent WASD from triggering controls
           rows={3}
           className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-950/60 p-2 text-sm text-zinc-100 focus:border-emerald-400 focus:outline-none"
         />
