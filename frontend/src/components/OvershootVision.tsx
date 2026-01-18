@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScreenShareVision } from '../lib/ScreenShareVision';
 
-const SHOW_VIDEO_STREAM = true;
+const SHOW_VIDEO_STREAM = false;
 
 const OvershootVision: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
@@ -147,9 +147,9 @@ const OvershootVision: React.FC = () => {
         <div className="space-y-1">
             <div 
                 ref={resultRef}
-                className="h-32 bg-black/30 rounded p-2 text-sm overflow-y-auto font-mono text-green-400 border border-white/5 whitespace-pre-wrap scroll-smooth"
+                className="h-48 bg-black/30 rounded p-2 text-sm overflow-y-auto font-mono text-green-400 whitespace-pre-wrap scroll-smooth"
             >
-                {result}
+                {result || "Analyzing view..."}
             </div>
         </div>
 
