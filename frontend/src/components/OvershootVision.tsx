@@ -6,7 +6,7 @@ const SHOW_VIDEO_STREAM = false;
 const OvershootVision: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const [result, setResult] = useState<string>('');
-  const [prompt, setPrompt] = useState('Describe what you see. It is a historical landscape, give real dates, details, and events about this landscape.');
+  const [prompt, setPrompt] = useState('Describe what you see. It is a historical landscape, give real dates, details, and events about this landscape. Your audience is a grade 10 history class.');
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const visionRef = useRef<any>(null);
