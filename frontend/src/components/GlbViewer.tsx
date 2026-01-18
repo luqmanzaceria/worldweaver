@@ -360,13 +360,23 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                         <li><span className="font-mono text-gray-700">ESC</span> Release</li>
                     </ul>
 
-                    <button 
-                        onClick={() => setIsFlying(!isFlying)}
-                        className="mt-3 w-full px-2 py-1.5 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs font-medium text-gray-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <span className={`w-2 h-2 rounded-full ${isFlying ? 'bg-blue-500' : 'bg-gray-400'}`} />
-                        {isFlying ? "Flying Mode" : "Walking Mode"}
-                    </button>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                        <label className="flex items-center justify-between cursor-pointer group">
+                            <span className="text-xs font-semibold text-gray-700">Movement Mode</span>
+                            <div 
+                                onClick={() => setIsFlying(!isFlying)}
+                                className="relative inline-flex items-center w-10 h-5 rounded-full transition-colors duration-200 ease-in-out pointer-events-auto"
+                                style={{ backgroundColor: isFlying ? '#3b82f6' : '#d1d5db' }}
+                            >
+                                <span 
+                                    className={`inline-block w-3 h-3 transform bg-white rounded-full transition duration-200 ease-in-out ${isFlying ? 'translate-x-6' : 'translate-x-1'}`} 
+                                />
+                            </div>
+                        </label>
+                        <div className="mt-1 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+                            {isFlying ? "Flying (Noclip)" : "Walking (Gravity)"}
+                        </div>
+                    </div>
                 </div>
             </div>
         </KeyboardControls>

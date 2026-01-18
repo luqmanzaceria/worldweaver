@@ -169,8 +169,10 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">World Weaver</h2>
-        <div className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500">
+        <div className="font-bold">
+          Create A World
+        </div>
+        <div className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500 font-medium uppercase">
           Agent Mode
         </div>
       </div>
