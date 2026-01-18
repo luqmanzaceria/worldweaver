@@ -112,7 +112,7 @@ const App: React.FC = () => {
         }
       }} />}
       <VoiceAgent />
-      <OvershootVision initialPrompt={overshootPrompt} />
+      {!isTeacherMode && <OvershootVision initialPrompt={overshootPrompt} />}
     </div>
   );
 };
