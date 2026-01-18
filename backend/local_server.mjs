@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { mkdir, readFile } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
 import crypto from 'node:crypto';
+import { AccessToken } from 'livekit-server-sdk';
 import { createMcpClient } from './mcp_client.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -366,6 +367,40 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': '*' });
     res.end();
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/token') {
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const livekitUrl = process.env.LIVEKIT_URL;
+    
+    console.log(`[Backend] /token request. URL: ${livekitUrl}, Key: ${apiKey ? '***' + apiKey.slice(-4) : 'MISSING'}`);
+    
+    try {
+      const roomName = url.searchParams.get('room') || 'worldweaver-room';
+      const participantName = url.searchParams.get('participant') || `user-${crypto.randomBytes(4).toString('hex')}`;
+
+      if (!apiKey || !apiSecret || !livekitUrl) {
+        console.error('[Backend] LiveKit configuration missing (API_KEY, SECRET, or URL)');
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'LiveKit configuration missing on server' }));
+        return;
+      }
+
+      const at = new AccessToken(apiKey, apiSecret, {
+        identity: participantName,
+      });
+      at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
+
+      const token = await at.toJwt();
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ token, serverUrl: livekitUrl }));
+    } catch (e) {
+      console.error('[Backend] Token generation error:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
     return;
   }
 

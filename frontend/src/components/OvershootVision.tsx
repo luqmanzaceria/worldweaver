@@ -41,7 +41,12 @@ const OvershootVision: React.FC = () => {
         prompt: prompt,
         // Using minimal configuration as per getting-started docs
         source: { type: 'camera', cameraFacing: 'environment' },
-        processing: { fps: 30 },
+        processing: {
+          clip_length_seconds: 1.5,
+          delay_seconds: 2.5,
+          fps: 30,
+          sampling_ratio: 0.7
+        },      
         debug: true, // Enable debug logging
         onResult: (res: any) => {
           console.log("HIHIHIIHIH")

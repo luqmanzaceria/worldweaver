@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "blender:local": "node local_server.mjs"
+  },
+  "dependencies": {
+    "livekit-server-sdk": "^2.9.2"
   }
 }
 
