@@ -66,6 +66,35 @@ export function createMcpClient() {
   child.stderr.on('data', data => {
     const lines = data.toString().split('\n').filter(Boolean);
     for (const line of lines) {
+      // Filter out known non-fatal Pydantic validation errors from blender-mcp
+      // These are validation warnings that don't affect functionality
+      const isPydanticError = 
+        line.includes('TaskStatusNotification.params') ||
+        (line.includes('lastUpdatedAt') || line.includes('ttl')) && 
+        line.includes('Field required') ||
+        line.includes('For further information visit https://errors.pydantic.dev') ||
+        (line.includes('method=') && line.includes('initialized') && line.includes('params={}'));
+      
+      // Filter out verbose INFO logs from blender-mcp (not actual errors)
+      const isInfoLog = 
+        (line.includes('BlenderMCPServer') && line.includes('INFO')) ||
+        (line.includes('Received') && line.includes('bytes of data')) ||
+        line.includes('Response parsed, status: success') ||
+        line.includes('Sending command:') ||
+        line.includes('Command sent, waiting for response') ||
+        line.includes('Received complete response');
+      
+      // Filter out telemetry logs
+      const isTelemetryLog = 
+        (line.includes('httpx') && (line.includes('telemetry_events') || line.includes('supabase.co'))) ||
+        line.includes('get_telemetry_consent');
+      
+      if (isPydanticError || isTelemetryLog || isInfoLog) {
+        // Skip these verbose/informational messages
+        continue;
+      }
+      
+      // Only log actual warnings and errors
       logs.push(`[stderr] ${line}`);
     }
     if (logs.length > 200) logs.splice(0, logs.length - 200);

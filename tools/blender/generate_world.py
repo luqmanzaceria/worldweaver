@@ -19,6 +19,16 @@ def clear_scene():
     bpy.ops.object.delete()
 
 
+def create_material(name: str, color: tuple):
+    """Create a material with the specified color."""
+    mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf:
+        bsdf.inputs["Base Color"].default_value = (*color, 1.0)
+    return mat
+
+
 def generate_world(prompt: str):
     log("Clearing scene")
     clear_scene()
@@ -27,13 +37,28 @@ def generate_world(prompt: str):
     bpy.ops.mesh.primitive_plane_add(size=20, location=(0, 0, 0))
     ground = bpy.context.active_object
     ground.name = "WW_Ground"
+    
+    # Add green grass material to ground
+    ground_material = create_material("Ground_Material", (0.2, 0.6, 0.3))
+    ground.data.materials.append(ground_material)
     time.sleep(0.3)
 
     log("Placing proxy geometry")
     bpy.ops.mesh.primitive_cube_add(size=2, location=(4, 0, 1))
-    bpy.context.active_object.name = "WW_Block_A"
+    block_a = bpy.context.active_object
+    block_a.name = "WW_Block_A"
+    
+    # Add brown material to block A
+    block_a_material = create_material("BlockA_Material", (0.6, 0.4, 0.2))
+    block_a.data.materials.append(block_a_material)
+    
     bpy.ops.mesh.primitive_cube_add(size=2, location=(-4, 0, 1))
-    bpy.context.active_object.name = "WW_Block_B"
+    block_b = bpy.context.active_object
+    block_b.name = "WW_Block_B"
+    
+    # Add blue material to block B
+    block_b_material = create_material("BlockB_Material", (0.2, 0.4, 0.8))
+    block_b.data.materials.append(block_b_material)
     time.sleep(0.3)
 
     # Example prompt metadata stored on the scene for exporters to read.

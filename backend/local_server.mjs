@@ -199,12 +199,16 @@ async function runMcpJob(job) {
       }
     ];
 
+
     const system = `You are a professional Blender artist.
-${isFollowUp ? 'You are EDITING an existing scene. The previous conversation contains the context of what has been built.' : 'Clear the scene first with "import bpy; bpy.ops.object.select_all(action=\'SELECT\'); bpy.ops.object.delete()"'}
-Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
+    ${isFollowUp ? 'You are EDITING an existing scene. The previous conversation contains the context of what has been built.' : 'Clear the scene first with "import bpy; bpy.ops.object.select_all(action=\'SELECT\'); bpy.ops.object.delete()"'}
+    The user is viewing the scene through a camera at an eye-level height of ${job.cameraHeight || 1.6} meters. 
+    Ensure that all objects (doors, tables, chairs, ceilings) are scaled realistically relative to this human eye-level height. 
+    For example, a standard door should be around 2.0-2.2 meters high, a table around 0.75 meters, and a chair seat around 0.45 meters.
+    Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
 
     let turn = 0;
-    const maxTurns = 6; 
+    const maxTurns = 6; // Balanced for quality and speed 
 
     while (turn < maxTurns) {
       turn++;
@@ -217,7 +221,7 @@ Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
         },
         body: JSON.stringify({
           model,
-          max_tokens: 1500,
+          max_tokens: 3000, // Balanced for detailed code without excessive wait time
           system: [
             {
               type: 'text',
