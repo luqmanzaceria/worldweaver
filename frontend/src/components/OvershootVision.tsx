@@ -9,6 +9,61 @@ const OvershootVision: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const visionRef = useRef<RealtimeVision | null>(null);
+  
+  // Draggable panel state - use null to indicate initial position
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
+  
+  // Drag handlers
+  const handleMouseDown = React.useCallback((e: React.MouseEvent) => {
+    if (!panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    setIsDragging(true);
+    
+    // Calculate offset from mouse position to top-left corner of panel
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  React.useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!panelRef.current) return;
+      const panel = panelRef.current;
+      const rect = panel.getBoundingClientRect();
+      const maxX = window.innerWidth - rect.width;
+      const maxY = window.innerHeight - rect.height;
+      
+      // Calculate new position based on mouse position minus offset
+      let newX = e.clientX - dragOffset.x;
+      let newY = e.clientY - dragOffset.y;
+      
+      // Clamp to viewport bounds
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
+      
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
 
   useEffect(() => {
     // Cleanup on unmount
@@ -97,16 +152,41 @@ const OvershootVision: React.FC = () => {
       }
   };
 
+  const panelStyle: React.CSSProperties = {
+    position: 'absolute',
+    width: '320px',
+    cursor: isDragging ? 'grabbing' : 'default'
+  };
+  
+  // Use bottom/right for initial position, left/top after dragging
+  if (position === null) {
+    panelStyle.bottom = '16px';
+    panelStyle.right = '16px';
+  } else {
+    panelStyle.left = `${position.x}px`;
+    panelStyle.top = `${position.y}px`;
+  }
+
   return (
     <div 
-      className="absolute bottom-4 right-4 w-80 bg-black/80 backdrop-blur-md p-4 rounded-lg text-white border border-white/10 shadow-xl z-50 pointer-events-auto"
+      ref={panelRef}
+      className="bg-black/80 backdrop-blur-md p-4 rounded-lg text-white border border-white/10 shadow-xl z-50 pointer-events-auto select-none"
+      style={panelStyle}
       onPointerDown={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2">
-        <Camera className="w-5 h-5 text-blue-400" />
-        <h2 className="font-semibold">Overshoot Vision</h2>
+      <div 
+        className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2 -mx-4 -mt-4 px-4 pt-4 cursor-grab active:cursor-grabbing"
+        onMouseDown={handleMouseDown}
+      >
+        <Camera className="w-5 h-5 text-blue-400 select-none" />
+        <h2 className="font-semibold select-none flex-1">Overshoot Vision</h2>
+        {/* Drag indicator - three horizontal lines (grip handle) */}
+        <div className="flex flex-col gap-1 items-center select-none opacity-60 hover:opacity-100 transition-opacity">
+          <div className="w-4 h-0.5 bg-white/60 rounded-full"></div>
+          <div className="w-4 h-0.5 bg-white/60 rounded-full"></div>
+          <div className="w-4 h-0.5 bg-white/60 rounded-full"></div>
+        </div>
       </div>
 
       <div className="space-y-4">
