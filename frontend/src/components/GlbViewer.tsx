@@ -2,7 +2,7 @@ import React, { Suspense, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, KeyboardControls, PointerLockControls, Box, Text, useKeyboardControls, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import * as THREE from 'three';
-import { PLAYER_HEIGHT, PLAYER_RADIUS, JUMP_FORCE, GRAVITY, MOVE_SPEED } from '../constants/camera';
+import { PLAYER_HEIGHT, PLAYER_RADIUS, JUMP_FORCE, GRAVITY, MOVE_SPEED, FLY_SPEED } from '../constants/camera';
 
 // Controls mapping
 const controls = [
@@ -11,6 +11,7 @@ const controls = [
   { name: 'left', keys: ['ArrowLeft', 'a', 'A'] },
   { name: 'right', keys: ['ArrowRight', 'd', 'D'] },
   { name: 'jump', keys: ['Space'] },
+  { name: 'down', keys: ['ShiftLeft', 'ShiftRight'] },
 ];
 
 function AsyncModel({ url }: { url: string }) {
@@ -27,16 +28,15 @@ function AsyncModel({ url }: { url: string }) {
             const size = box.getSize(new THREE.Vector3());
             const center = box.getCenter(new THREE.Vector3());
 
-            // Position camera at a corner of the bounding box, just slightly outside
-            // Use the bottom of the model as the floor reference for height
-            const spawnX = center.x + (size.x / 2) + 2.0;
-            const spawnZ = center.z + (size.z / 2) + 2.0;
-            const spawnY = box.min.y + PLAYER_HEIGHT;
+            // Position camera above the model at z=0 as requested
+            const spawnX = center.x;
+            const spawnY = box.max.y + 20;
+            const spawnZ = 0;
             
             camera.position.set(spawnX, spawnY, spawnZ);
             
             // Look at the center of the structure at eye level
-            camera.lookAt(center.x, spawnY, center.z);
+            camera.lookAt(center.x, center.y, center.z);
         }
     }, [scene, url, camera]);
 
@@ -56,7 +56,7 @@ function Placeholder() {
     )
 }
 
-function WasdControls() {
+function WasdControls({ isFlying }: { isFlying: boolean }) {
   const { camera, scene } = useThree();
   const [, get] = useKeyboardControls();
   const raycaster = React.useMemo(() => new THREE.Raycaster(), []);
@@ -70,7 +70,25 @@ function WasdControls() {
   const lastUpdateRef = React.useRef(0);
 
   useFrame((state, delta) => {
-    const { forward, backward, left, right, jump } = get();
+    const { forward, backward, left, right, jump, down } = get();
+
+    if (isFlying) {
+      const speed = FLY_SPEED * delta;
+      // Fly relative to camera direction
+      if (forward) camera.translateZ(-speed);
+      if (backward) camera.translateZ(speed);
+      if (left) camera.translateX(-speed);
+      if (right) camera.translateX(speed);
+      
+      // Global Up/Down
+      if (jump) camera.position.y += speed;
+      if (down) camera.position.y -= speed;
+      
+      // Reset physics state so we don't carry momentum/falling when switching back
+      velocity.current.set(0, 0, 0);
+      isGrounded.current = false;
+      return;
+    }
     
     // 1. Update collidable objects list (Throttle to avoid heavy traverse)
     const now = state.clock.getElapsedTime();
@@ -275,6 +293,7 @@ function BlenderAxes() {
 
 const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
   const [retryKey, setRetryKey] = useState(0);
+  const [isFlying, setIsFlying] = useState(true);
   const handleRetry = () => setRetryKey(prev => prev + 1);
 
   // Use retryKey for re-mounting on error, but NOT the url.
@@ -299,7 +318,7 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                 </Suspense>
                 
                 <PointerLockControls />
-                <WasdControls />
+                <WasdControls isFlying={isFlying} />
                 
                 {/* Blender-like Grid */}
                 <Grid 
@@ -326,14 +345,25 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
             
             {/* UI Overlay - Minimal to match Blender's clean look */}
             <div className="absolute top-[260px] left-4 text-black/80 font-sans text-sm select-none pointer-events-none">
-                <div className="bg-[#f0f0f0]/80 p-3 rounded border border-black/10 backdrop-blur-sm shadow-sm">
+                <div className="bg-[#f0f0f0]/80 p-3 rounded border border-black/10 backdrop-blur-sm shadow-sm pointer-events-auto">
                     <h2 className="font-bold mb-2 text-gray-800">GLB Viewer</h2>
                     <ul className="space-y-1 text-xs text-gray-600">
                         <li><span className="font-mono text-gray-700">WASD</span> Move</li>
                         <li><span className="font-mono text-gray-700">Click</span> Look</li>
+                        <li><span className="font-mono text-gray-700">Space</span> {isFlying ? "Up" : "Jump"}</li>
+                        {isFlying && <li><span className="font-mono text-gray-700">Shift</span> Down</li>}
                         <li><span className="font-mono text-gray-700">ESC</span> Release</li>
                     </ul>
-                    <p className="text-xs mt-2 opacity-70">File: {url}</p>
+
+                    <button 
+                        onClick={() => setIsFlying(!isFlying)}
+                        className="mt-3 w-full px-2 py-1.5 bg-white border border-gray-300 rounded hover:bg-gray-50 text-xs font-medium text-gray-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <span className={`w-2 h-2 rounded-full ${isFlying ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                        {isFlying ? "Flying Mode" : "Walking Mode"}
+                    </button>
+
+                    <p className="text-xs mt-2 opacity-70 border-t border-gray-200 pt-2 truncate max-w-[200px]" title={url}>File: {url}</p>
                 </div>
             </div>
         </KeyboardControls>
