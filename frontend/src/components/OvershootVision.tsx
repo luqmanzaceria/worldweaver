@@ -162,7 +162,7 @@ const OvershootVision: React.FC<{ initialPrompt?: string }> = ({ initialPrompt }
                 ref={resultRef}
                 className="h-48 bg-black/30 rounded p-2 text-sm overflow-y-auto font-mono text-green-400 whitespace-pre-wrap scroll-smooth"
             >
-                {result || "Analyzing view..."}
+                {result}
             </div>
         </div>
 
