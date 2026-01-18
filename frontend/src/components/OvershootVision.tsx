@@ -167,7 +167,11 @@ const OvershootVision: React.FC = () => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     className="flex-1 bg-white/10 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500"
-                    onKeyDown={(e) => e.key === 'Enter' && updatePrompt()}
+                    onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter') updatePrompt();
+                    }}
+                    onKeyUp={(e) => e.stopPropagation()}
                 />
                 {isActive && (
                     <button 
