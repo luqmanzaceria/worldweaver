@@ -147,9 +147,8 @@ async function runMcpJob(job) {
     await client.ensureInitialized();
 
     const toolsResponse = await client.listTools();
-    // Filter tools to only include scene-building essentials to save tokens
-    const essentialTools = ['execute_blender_code', 'get_scene_info', 'search_polyhaven', 'import_asset', 'list_objects'];
-    const tools = (toolsResponse.tools || []).filter(t => essentialTools.includes(t.name));
+    // Support all tools for full capability
+    const tools = toolsResponse.tools || [];
 
     const apiKey = process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY;
     const model = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-5-20250929';
@@ -202,15 +201,31 @@ async function runMcpJob(job) {
       }
     ];
 
-    const system = `You are a professional Blender artist.
-${isFollowUp ? 'You are EDITING an existing scene. The previous conversation contains the context of what has been built.' : 'Clear the scene first with "import bpy; bpy.ops.object.select_all(action=\'SELECT\'); bpy.ops.object.delete()"'}
-The user is viewing the scene through a camera at an eye-level height of ${job.cameraHeight || 1.6} meters. 
-Ensure that all objects (doors, tables, chairs, ceilings) are scaled realistically relative to this human eye-level height. 
-For example, a standard door should be around 2.0-2.2 meters high, a table around 0.75 meters, and a chair seat around 0.45 meters.
-Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
+    const system = `You are a professional Blender Technical Artist and Spatial Reasoning AI.
+You have full access to the Blender Python API (bpy) and specialized tools for scene construction.
+
+DESIGN PRINCIPLES:
+1. SPATIAL ACCURACY: Camera is at 1.6m (eye level). All objects MUST be sized relative to this.
+   - Doors: 2.1m high, 0.9m wide.
+   - Tables: 0.75m high.
+   - Chairs: 0.45m seat height.
+   - Ceilings: 2.4m to 3.0m high.
+2. ROBUST CODE: Prefer 'bpy.data' over 'bpy.ops' where possible. Always check for existing collections/materials before creating new ones.
+3. SCENE STRUCTURE: Use logical collections. Name every object descriptively.
+4. VISUAL FIDELITY: Always assign materials with appropriate colors, roughness (0.5 default), and metallic (0.0 default) values.
+5. COORDINATES: Blender is Z-UP. The ground is Z=0.
+
+OPERATIONAL PROTOCOL:
+1. ANALYZE: If editing, run 'get_scene_info' or 'list_objects' first.
+2. PLAN: Describe your architectural or spatial plan in one sentence.
+3. EXECUTE: Write optimized, commented Python code.
+4. REFLECT: If a tool returns an error or a render looks wrong, analyze and fix it.
+5. FINALIZE: Only end with "SCENE_COMPLETE" when the task is fully achieved.
+
+You are highly technical, precise, and spatially aware. Your goal is to create high-quality, architecturally sound 3D environments.`;
 
     let turn = 0;
-    const maxTurns = 6; 
+    const maxTurns = 10; 
 
     while (turn < maxTurns) {
       turn++;
@@ -223,7 +238,7 @@ Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
         },
         body: JSON.stringify({
           model,
-          max_tokens: 1500,
+          max_tokens: 2000,
           system: [
             {
               type: 'text',
@@ -233,7 +248,7 @@ Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
           ],
           tools: tools.map((t, i) => ({
             name: t.name,
-            description: t.description.slice(0, 500),
+            description: t.description, 
             input_schema: t.inputSchema,
             // Cache the tools definition on the last tool to cover the whole block
             ...(i === tools.length - 1 ? { cache_control: { type: 'ephemeral' } } : {})
@@ -251,10 +266,15 @@ Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
       const result = await response.json();
       messages.push({ role: 'assistant', content: result.content });
 
+      // Handle reasoning and tool calls
+      const textBlock = result.content.find(c => c.type === 'text');
+      if (textBlock?.text) {
+        sendEvent(job, { type: 'status', message: 'Claude Thinking', detail: textBlock.text });
+      }
+
       const toolCalls = result.content.filter(c => c.type === 'tool_use');
       if (toolCalls.length === 0) {
         const text = result.content.find(c => c.type === 'text')?.text;
-        if (text) sendEvent(job, { type: 'status', message: 'Claude', detail: text });
         if (text?.includes('SCENE_COMPLETE')) break;
         if (turn >= 2) break; 
         continue;
@@ -262,13 +282,13 @@ Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
 
       const toolResults = [];
       for (const toolCall of toolCalls) {
-        sendEvent(job, { type: 'status', message: `Tool: ${toolCall.name}` });
+        sendEvent(job, { type: 'status', message: `Executing Tool: ${toolCall.name}` });
         try {
           const toolOutput = await client.callTool(toolCall.name, toolCall.input);
-          // Truncate tool output to avoid token bloat
+          
           let outputStr = JSON.stringify(toolOutput);
-          if (outputStr.length > 2000) {
-            outputStr = outputStr.slice(0, 2000) + "... (truncated)";
+          if (outputStr.length > 20000) { 
+            outputStr = outputStr.slice(0, 20000) + "... (truncated for context)";
           }
           toolResults.push({ type: 'tool_result', tool_use_id: toolCall.id, content: outputStr });
         } catch (e) {
@@ -279,24 +299,16 @@ Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
     }
 
     // Update session history for next time
-    // We only keep the original prompts and final assistant responses.
-    // We STRIP intermediate tool use/results to avoid token bloat and malformed history.
-    const turnHistory = [];
-    for (const m of messages) {
-      // Keep original user prompts
-      if (m.role === 'user' && typeof m.content === 'string') {
-        turnHistory.push(m);
-      }
-      // Keep final assistant responses (the ones without tool calls)
-      if (m.role === 'assistant' && Array.isArray(m.content)) {
-        const hasToolUse = m.content.some(c => c.type === 'tool_use');
-        if (!hasToolUse) {
-          turnHistory.push(m);
-        }
+    // We keep full tool calls and results for better continuity
+    let turnHistory = [...messages];
+    if (turnHistory.length > 12) {
+      turnHistory = turnHistory.slice(-12);
+      // Ensure history starts with a 'user' role
+      while (turnHistory.length > 0 && turnHistory[0].role !== 'user') {
+        turnHistory.shift();
       }
     }
-    // Keep only the last 3 turns (6 messages)
-    session.history = turnHistory.slice(-6);
+    session.history = turnHistory;
 
     sendEvent(job, { type: 'status', message: 'Finalizing and exporting' });
     const finalizeCode = `
