@@ -288,35 +288,34 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
       </div>
 
       {/* Stream Logs */}
-      <div className="mt-4 flex-1 overflow-hidden flex flex-col min-h-0">
-        <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-2">
-          <span>Generation Console</span>
-          {status === 'running' && <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-        </div>
-        <div 
-          ref={scrollRef} 
-          className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-zinc-950 scrollbar-thumb-zinc-700"
-        >
-          {events.length === 0 && (
-            <div className="text-zinc-600 text-xs italic">Awaiting your command...</div>
-          )}
-          {events.map((event, index) => (
-            <div key={index} className="flex gap-2 text-[11px] animate-in fade-in slide-in-from-top-1 duration-300">
-              <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${
-                event.type === 'asset' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-zinc-600'
-              }`} />
-              <div className="flex-1">
-                <span className="text-zinc-300 font-medium">{event.message}</span>
-                {event.detail && (
-                  <div className="mt-0.5 text-zinc-500 break-words opacity-80 leading-relaxed font-mono text-[10px]">
-                    {event.detail}
-                  </div>
-                )}
+      {events.length > 0 && (
+        <div className="mt-4 flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-2">
+            <span>Generation Console</span>
+            {status === 'running' && <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+          </div>
+          <div 
+            ref={scrollRef} 
+            className="flex-1 space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-zinc-950 scrollbar-thumb-zinc-700"
+          >
+            {events.map((event, index) => (
+              <div key={index} className="flex gap-2 text-[11px] animate-in fade-in slide-in-from-top-1 duration-300">
+                <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${
+                  event.type === 'asset' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-zinc-600'
+                }`} />
+                <div className="flex-1">
+                  <span className="text-zinc-300 font-medium">{event.message}</span>
+                  {event.detail && (
+                    <div className="mt-0.5 text-zinc-500 break-words opacity-80 leading-relaxed font-mono text-[10px]">
+                      {event.detail}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
