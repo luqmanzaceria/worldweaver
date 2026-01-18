@@ -1,24 +1,14 @@
-import type { Observation } from './observation';
-
 /**
  * Controller Interface
  * Unifies humans, scripts, and AI policies.
  */
-export type ContinuousAction = {
-  kind: 'continuous';
+export interface Action {
+  type: 'continuous' | 'discrete';
   values: Record<string, number>;
-};
-
-export type DiscreteAction = {
-  kind: 'discrete';
-  action: string;
-  parameters?: Record<string, number>;
-};
-
-export type Action = ContinuousAction | DiscreteAction;
+}
 
 export interface Controller {
-  computeAction(observation: Observation): Action;
+  computeAction(observation: any): Action;
   reset(): void;
 }
 
@@ -35,9 +25,9 @@ export class KeyboardController implements Controller {
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
   }
 
-  computeAction(_observation: Observation): Action {
+  computeAction(_observation: any): Action {
     const action: Action = {
-      kind: 'continuous',
+      type: 'continuous',
       values: { x: 0, y: 0, z: 0 }
     };
 

@@ -82,7 +82,7 @@ function ErrorFallback({ error, onRetry }: { error: Error | null, onRetry: () =>
             >
                 <meshStandardMaterial color="#444" />
             </Box>
-            <Text position={[0, 0.5, 0.66]} color="white" fontSize={0.15} anchorX="center" anchorY="middle" pointerEvents="none">
+            <Text position={[0, 0.5, 0.66]} color="white" fontSize={0.15} anchorX="center" anchorY="middle">
                 Retry Load
             </Text>
         </group>
@@ -107,13 +107,17 @@ function BlenderAxes() {
 }
 
 const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
-  const [key, setKey] = useState(0);
-  const handleRetry = () => setKey(prev => prev + 1);
+  const [retryKey, setRetryKey] = useState(0);
+  const handleRetry = () => setRetryKey(prev => prev + 1);
+
+  // Use retryKey for re-mounting on error, but NOT the url.
+  // This preserves camera and scene state across version swaps.
+  const canvasKey = `canvas-${retryKey}`;
 
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: '#e5e5e5' }}>
         <KeyboardControls map={controls}>
-            <Canvas camera={{ position: [5, 5, 5], fov: 50 }} key={key}>
+            <Canvas camera={{ position: [5, 5, 5], fov: 50 }} key={canvasKey}>
                 {/* Blender Default Background Color */}
                 <color attach="background" args={['#e5e5e5']} />
                 
@@ -123,7 +127,7 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                 
                 <Suspense fallback={<Placeholder />}>
                     <ModelErrorBoundary fallback={(error) => <ErrorFallback error={error} onRetry={handleRetry} />}>
-                       <AsyncModel url={url} />
+                       <AsyncModel key={url} url={url} />
                     </ModelErrorBoundary>
                 </Suspense>
                 
@@ -154,7 +158,7 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
             </Canvas>
             
             {/* UI Overlay - Minimal to match Blender's clean look */}
-            <div className="absolute top-4 left-4 text-black/80 font-sans text-sm select-none pointer-events-none">
+            <div className="absolute top-[260px] left-4 text-black/80 font-sans text-sm select-none pointer-events-none">
                 <div className="bg-[#f0f0f0]/80 p-3 rounded border border-black/10 backdrop-blur-sm shadow-sm">
                     <h2 className="font-bold mb-2 text-gray-800">GLB Viewer</h2>
                     <ul className="space-y-1 text-xs text-gray-600">

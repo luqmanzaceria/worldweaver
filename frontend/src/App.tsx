@@ -8,6 +8,8 @@ import McpStatusPanel from './components/McpStatusPanel';
 const App: React.FC = () => {
   const [assetUrl, setAssetUrl] = useState('/worlds/dummy.glb');
 
+  console.log('[App] Current Asset URL:', assetUrl);
+
   return (
     <div className="relative w-full h-full">
       {/* <Canvas3D /> */}

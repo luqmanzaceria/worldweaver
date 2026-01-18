@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { BlenderGenerationEvent, createBlenderGenerationStream } from '../engine/blender_bridge';
 import { getSimulation } from '../engine/simulation_instance';
 import { SceneLoader } from '../engine/scene_loader';
+import { RotateCcw } from 'lucide-react';
 
 interface GenerationPanelProps {
   onAsset?: (url: string) => void;
@@ -10,6 +11,7 @@ interface GenerationPanelProps {
 interface Version {
   id: string;
   prompt: string;
+  glbUrl: string;
 }
 
 const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
@@ -57,7 +59,7 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
         if (event.versionId) setCurrentVersionId(event.versionId);
         
         if (event.history) {
-          setHistory(event.history.map(v => ({ id: v.id, prompt: v.prompt })));
+          setHistory(event.history as Version[]);
         }
 
         const resolvedUrl = event.url.startsWith('http')
@@ -81,10 +83,51 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
     }
   }, [prompt, sessionId, onAsset, apiBase]);
 
-  const handleRevert = useCallback((version: Version) => {
+  const handleViewVersion = useCallback((version: Version) => {
     setCurrentVersionId(version.id);
-    handleGenerate(`Restore state to: ${version.prompt}`, version.id);
-  }, [handleGenerate]);
+    const resolvedUrl = version.glbUrl.startsWith('http')
+      ? version.glbUrl
+      : `${apiBase}${version.glbUrl.startsWith('/') ? '' : '/'}${version.glbUrl}`;
+    onAsset?.(resolvedUrl);
+    
+    setEvents(prev => [
+      ...prev, 
+      { type: 'status', message: 'Switched view to version', detail: version.prompt }
+    ]);
+  }, [onAsset, apiBase]);
+
+  const handleRevert = useCallback(async (version: Version) => {
+    const index = history.findIndex(v => v.id === version.id);
+    if (index === -1 || !sessionId) return;
+    
+    setStatus('running');
+    setEvents(prev => [...prev, { type: 'status', message: 'Reverting state...', detail: version.prompt }]);
+
+    try {
+      const response = await fetch(`${apiBase}/revert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, versionId: version.id })
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+
+      // Success - update local state
+      setCurrentVersionId(version.id);
+      setHistory(prev => prev.slice(0, index + 1));
+      handleViewVersion(version);
+      
+      setEvents(prev => [
+        ...prev,
+        { type: 'status', message: 'Reverted successfully', detail: `Future prompts will branch from: ${version.prompt}` }
+      ]);
+      setStatus('complete');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Revert failed';
+      setEvents(prev => [...prev, { type: 'status', message: 'Revert failed', detail: message }]);
+      setStatus('idle');
+    }
+  }, [history, sessionId, apiBase, handleViewVersion]);
 
   const startEdit = (v: Version) => {
     setEditingId(v.id);
@@ -97,14 +140,18 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
       return;
     }
     const index = history.findIndex(item => item.id === v.id);
-    // When editing, we revert to the parent of the version we are editing
     const parentId = index > 0 ? history[index - 1].id : undefined;
     
-    // Clear editing state and truncate history locally for immediate feedback
+    // Optimistically update the prompt in history and truncate future branches
+    const updatedPrompt = editValue;
     setEditingId(null);
-    setHistory(prev => prev.slice(0, index));
+    setHistory(prev => {
+      const next = prev.slice(0, index + 1);
+      next[index] = { ...next[index], prompt: updatedPrompt };
+      return next;
+    });
     
-    handleGenerate(editValue, parentId);
+    handleGenerate(updatedPrompt, parentId);
   };
 
   const handleCancel = useCallback(() => {
@@ -163,7 +210,7 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
               ) : (
                 <div className={`flex gap-2 items-start group`}>
                    <button
-                    onClick={() => handleRevert(v)}
+                    onClick={() => handleViewVersion(v)}
                     className={`flex-1 text-left p-2 rounded text-xs transition border ${
                       currentVersionId === v.id 
                         ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
@@ -172,15 +219,24 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
                   >
                     <div className="truncate font-medium">{v.prompt}</div>
                   </button>
-                  <button 
-                    onClick={() => startEdit(v)}
-                    className="mt-2 opacity-0 group-hover:opacity-100 p-1 hover:bg-zinc-800 rounded text-zinc-500 transition"
-                    title="Edit prompt"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition mt-1.5">
+                    <button 
+                      onClick={() => handleRevert(v)}
+                      className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-emerald-400 transition"
+                      title="Revert to this state"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => startEdit(v)}
+                      className="p-1 hover:bg-zinc-800 rounded text-zinc-500 transition"
+                      title="Edit prompt"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

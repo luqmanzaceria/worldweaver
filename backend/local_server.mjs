@@ -149,7 +149,7 @@ async function runMcpJob(job) {
     const tools = (toolsResponse.tools || []).filter(t => essentialTools.includes(t.name));
 
     const apiKey = process.env.CLAUDE_API_KEY ?? process.env.ANTHROPIC_API_KEY;
-    const model = process.env.CLAUDE_MODEL ?? 'claude-3-haiku-20240307';
+    const model = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-5-20250929';
 
     if (!apiKey) {
       throw new Error('Claude API key missing (CLAUDE_API_KEY). Check your .env.local in the root.');
@@ -317,13 +317,20 @@ except Exception as e:
     };
     session.versions.push(version);
 
+    // Small delay to ensure file is flushed to disk before notifying frontend
+    await new Promise(r => setTimeout(r, 200));
+
     sendEvent(job, {
       type: 'asset',
       message: 'GLB artifact ready',
       url: version.glbUrl,
       sessionId: job.sessionId,
       versionId: version.id,
-      history: session.versions.map(v => ({ id: v.id, prompt: v.prompt }))
+      history: session.versions.map(v => ({ 
+        id: v.id, 
+        prompt: v.prompt,
+        glbUrl: v.glbUrl
+      }))
     });
     sendEvent(job, { type: 'complete', message: 'Generation complete' });
     job.status = 'complete';
@@ -403,12 +410,52 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && url.pathname === '/revert') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', async () => {
+      try {
+        const { sessionId, versionId } = JSON.parse(body);
+        const session = sessions.get(sessionId);
+        if (!session) throw new Error('Session not found');
+        
+        const versionIndex = session.versions.findIndex(v => v.id === versionId);
+        if (versionIndex === -1) throw new Error('Version not found');
+        
+        const version = session.versions[versionIndex];
+        const client = await getMcpClient();
+        await client.ensureInitialized();
+        
+        // Physically revert Blender state immediately
+        const restoreCode = `import bpy; bpy.ops.wm.open_mainfile(filepath="${version.blendPath.replace(/\\/g, '/')}")`;
+        await client.callTool('execute_blender_code', { code: restoreCode, user_prompt: "Revert state" });
+        
+        // Update session history
+        if (version.historyIndex !== undefined) {
+          session.history = session.history.slice(0, version.historyIndex);
+        }
+        session.versions = session.versions.slice(0, versionIndex + 1);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   // Serve static generated files
   if (req.method === 'GET' && url.pathname.startsWith('/generated/')) {
     const filePath = join(frontendPublicDir, url.pathname.replace('/generated/', ''));
     try {
       const data = await readFile(filePath);
-      res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(200, { 
+        'Content-Type': 'model/gltf-binary', 
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache' // Prevent browser caching of generated assets
+      });
       res.end(data);
     } catch {
       res.writeHead(404, { 'Access-Control-Allow-Origin': '*' });
