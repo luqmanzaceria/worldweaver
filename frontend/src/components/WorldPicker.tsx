@@ -14,7 +14,7 @@ const WorldPicker: React.FC<WorldPickerProps> = ({ isOpen, onClose, onSelectWorl
     // 'MachuPicchu.glb',
     'ChichenItza.glb',
     'TheGreatWallOfChina.glb',
-    'dummy.glb'
+    'FishingVillage.glb'
   ]);
 
   // If you want to auto-refresh this list or make it dynamic without a backend,
