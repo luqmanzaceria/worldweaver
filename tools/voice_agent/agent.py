@@ -69,7 +69,7 @@ async def main():
         await session.start(assistant, room=room)
         
         # Initial greeting
-        session.say("World Weaver agent connected. How can I help you?")
+        session.say("Welcome to WorldWeaver!")
 
         # 4. Keep alive until room disconnects
         logger.info("Agent is live. Waiting for user interaction...")

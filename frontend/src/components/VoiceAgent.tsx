@@ -131,6 +131,7 @@ const VoiceAgentInner: React.FC<{ onDisconnect: (e: React.MouseEvent) => void }>
 
 export const VoiceAgent: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -140,10 +141,8 @@ export const VoiceAgent: React.FC = () => {
   const handleToggle = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isConnected) {
-      console.log('[VoiceAgent] Disconnecting...');
-      setIsConnected(false);
-      setToken(null);
-      setUrl(null);
+      // If already connected, clicking the button just maximizes it
+      setIsMinimized(false);
       return;
     }
 
@@ -162,6 +161,7 @@ export const VoiceAgent: React.FC = () => {
         setToken(data.token);
         setUrl(data.serverUrl);
         setIsConnected(true);
+        setIsMinimized(false);
       } else {
         console.error('Failed to get LiveKit token:', data.error);
         alert('LiveKit not configured on backend. Check console for details.');
@@ -173,6 +173,27 @@ export const VoiceAgent: React.FC = () => {
       setIsLoading(false);
     }
   }, [isConnected, apiBase]);
+
+  const voiceCommandButton = (
+    <button
+      onClick={handleToggle}
+      disabled={isLoading}
+      className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-2xl transition-all ${
+        isLoading 
+          ? 'bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed' 
+          : 'bg-emerald-500 text-zinc-950 border-emerald-400 hover:bg-emerald-400 hover:scale-105 active:scale-95'
+      }`}
+    >
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Mic className="w-4 h-4" />
+      )}
+      <span className="text-sm font-bold tracking-tight">
+        {isLoading ? 'Connecting...' : 'Ask a question!'}
+      </span>
+    </button>
+  );
 
   return (
     <div className="fixed bottom-4 left-[280px] z-50 pointer-events-auto">
@@ -192,29 +213,16 @@ export const VoiceAgent: React.FC = () => {
           }}
           onError={(err) => console.error('[VoiceAgent] LiveKit Room Error:', err)}
         >
-          <VoiceAgentInner onDisconnect={handleToggle} />
+          {isMinimized ? (
+            voiceCommandButton
+          ) : (
+            <VoiceAgentInner onDisconnect={() => setIsMinimized(true)} />
+          )}
           <RoomAudioRenderer />
           <TrackSubscriptionLogger />
         </LiveKitRoom>
       ) : (
-        <button
-          onClick={handleToggle}
-          disabled={isLoading}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-2xl transition-all ${
-            isLoading 
-              ? 'bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed' 
-              : 'bg-emerald-500 text-zinc-950 border-emerald-400 hover:bg-emerald-400 hover:scale-105 active:scale-95'
-          }`}
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Mic className="w-4 h-4" />
-          )}
-          <span className="text-sm font-bold tracking-tight">
-            {isLoading ? 'Connecting...' : 'Ask a question!'}
-          </span>
-        </button>
+        voiceCommandButton
       )}
     </div>
   );
