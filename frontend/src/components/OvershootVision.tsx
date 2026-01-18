@@ -10,6 +10,8 @@ const OvershootVision: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const visionRef = useRef<RealtimeVision | null>(null);
 
+  const resultRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     // Cleanup on unmount
     return () => {
@@ -18,6 +20,12 @@ const OvershootVision: React.FC = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (resultRef.current) {
+        resultRef.current.scrollTop = resultRef.current.scrollHeight;
+    }
+  }, [result]);
 
   const startStream = async () => {
     try {
@@ -99,7 +107,7 @@ const OvershootVision: React.FC = () => {
 
   return (
     <div 
-      className="absolute bottom-4 right-4 w-80 bg-black/80 backdrop-blur-md p-4 rounded-lg text-white border border-white/10 shadow-xl z-50 pointer-events-auto"
+      className="absolute bottom-4 right-4 w-[480px] bg-black/80 backdrop-blur-md p-4 rounded-lg text-white border border-white/10 shadow-xl z-50 pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
@@ -171,7 +179,10 @@ const OvershootVision: React.FC = () => {
         {/* Result Output */}
         <div className="space-y-1">
             <label className="text-xs text-white/60">Analysis Result</label>
-            <div className="h-32 bg-black/30 rounded p-2 text-sm overflow-y-auto font-mono text-green-400 border border-white/5 whitespace-pre-wrap">
+            <div 
+                ref={resultRef}
+                className="h-32 bg-black/30 rounded p-2 text-sm overflow-y-auto font-mono text-green-400 border border-white/5 whitespace-pre-wrap scroll-smooth"
+            >
                 {result || <span className="text-white/30 italic">Waiting for results...</span>}
             </div>
         </div>
