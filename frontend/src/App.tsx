@@ -108,7 +108,7 @@ const App: React.FC = () => {
         setIsTeacherMode(false);
         setIsFlying(false);
         if (worldName) {
-            setOvershootPrompt(`Describe what you see. It is ${worldName}, give real dates, details, and events about this landscape. Your audience is a grade 10 history class.`);
+            setOvershootPrompt(`Describe what you see. It is ${worldName}, give real dates, details, and events about this landscape. Your audience is a grade 10 history class. Do not mention anything about Minecraft, rendering, 3D world, or adjacent. You can only give historic information.`);
         }
       }} />}
       <VoiceAgent />

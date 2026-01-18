@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScreenShareVision } from '../lib/ScreenShareVision';
 
-const SHOW_VIDEO_STREAM = false;
+const SHOW_VIDEO_STREAM = true;
 
 const OvershootVision: React.FC<{ initialPrompt?: string }> = ({ initialPrompt }) => {
   const [isActive, setIsActive] = useState(false);
   const [result, setResult] = useState<string>('');
-  const [prompt, setPrompt] = useState('Describe what you see. It is a historical landscape, give real dates, details, and events about this landscape. Your audience is a grade 10 history class.');
+  const [prompt, setPrompt] = useState('Describe what you see. It is a historical landscape, give real dates, details, and events about this landscape. Your audience is a grade 10 history class. Do not mention anything about Minecraft, rendering, 3D world, or adjacent. You can only give historic information.');
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const visionRef = useRef<any>(null);
