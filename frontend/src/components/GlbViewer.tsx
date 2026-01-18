@@ -361,20 +361,23 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                     </ul>
 
                     <div className="mt-3 pt-3 border-t border-gray-200">
-                        <label className="flex items-center justify-between cursor-pointer group">
-                            <span className="text-xs font-semibold text-gray-700">Movement Mode</span>
-                            <div 
-                                onClick={() => setIsFlying(!isFlying)}
-                                className="relative inline-flex items-center w-10 h-5 rounded-full transition-colors duration-200 ease-in-out pointer-events-auto"
-                                style={{ backgroundColor: isFlying ? '#3b82f6' : '#d1d5db' }}
+                        <div className="text-[10px] font-bold text-gray-800 uppercase tracking-widest text-center mb-2">Movement Mode</div>
+                        <div className="flex bg-gray-200 rounded-full p-1 relative pointer-events-auto">
+                            <button
+                                onClick={() => setIsFlying(true)}
+                                className={`flex-1 py-1 text-[10px] font-black uppercase tracking-tighter rounded-full transition-all z-10 ${isFlying ? 'text-white' : 'text-gray-500'}`}
                             >
-                                <span 
-                                    className={`inline-block w-3 h-3 transform bg-white rounded-full transition duration-200 ease-in-out ${isFlying ? 'translate-x-6' : 'translate-x-1'}`} 
-                                />
-                            </div>
-                        </label>
-                        <div className="mt-1 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
-                            {isFlying ? "Flying (Noclip)" : "Walking (Gravity)"}
+                                Fly
+                            </button>
+                            <button
+                                onClick={() => setIsFlying(false)}
+                                className={`flex-1 py-1 text-[10px] font-black uppercase tracking-tighter rounded-full transition-all z-10 ${!isFlying ? 'text-white' : 'text-gray-500'}`}
+                            >
+                                Walk
+                            </button>
+                            <div 
+                                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-blue-500 rounded-full transition-all duration-200 ease-out shadow-sm ${isFlying ? 'left-1' : 'left-[calc(50%+1px)]'}`}
+                            />
                         </div>
                     </div>
                 </div>

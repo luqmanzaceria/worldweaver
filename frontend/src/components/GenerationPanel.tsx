@@ -169,7 +169,7 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between">
-        <div className="font-bold">
+        <div className="font-bold text-zinc-400 pl-1">
           Create A World
         </div>
         <div className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500 font-medium uppercase">
