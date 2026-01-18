@@ -56,8 +56,26 @@ const VoiceAgentInner: React.FC<{ onDisconnect: (e: React.MouseEvent) => void }>
     console.log('[VoiceAgent] PTT Button Down');
     e.stopPropagation();
     setIsPressing(true);
+
+    // Send visual context if available
+    // @ts-ignore
+    const visualContext = window.latestOvershootContext;
+    if (visualContext && localParticipant) {
+      console.log('[VoiceAgent] Sending visual context to room:', visualContext);
+      const encoder = new TextEncoder();
+      const data = encoder.encode(JSON.stringify({
+        type: 'visual_context',
+        content: visualContext
+      }));
+      try {
+        await localParticipant.publishData(data, { reliable: true });
+      } catch (err) {
+        console.error('[VoiceAgent] Failed to send visual context:', err);
+      }
+    }
+
     await setMic(true);
-  }, [setMic]);
+  }, [setMic, localParticipant]);
 
   const handlePTTEnd = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
     console.log('[VoiceAgent] PTT Button Up');
@@ -212,7 +230,7 @@ export const VoiceAgent: React.FC = () => {
             <Mic className="w-4 h-4" />
           )}
           <span className="text-sm font-bold tracking-tight">
-            {isLoading ? 'Connecting...' : 'Voice Command'}
+            {isLoading ? 'Connecting...' : 'Ask a question!'}
           </span>
         </button>
       )}

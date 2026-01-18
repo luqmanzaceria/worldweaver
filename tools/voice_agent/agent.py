@@ -55,7 +55,25 @@ async def main():
         )
 
         session = voice.AgentSession()
-        
+
+        @room.on("data_received")
+        def on_data_received(data: rtc.DataPacket):
+            try:
+                import json
+                payload = json.loads(data.data.decode())
+                if payload.get("type") == "visual_context":
+                    context = payload.get("content")
+                    logger.info(f"Received visual context: {context}")
+                    # Update the assistant's memory/context for the next interaction
+                    if hasattr(assistant, 'chat_ctx'):
+                        assistant.chat_ctx.append(
+                            role="system",
+                            text=f"The current visual context (what the user sees) is: {context}. "
+                                 f"Use this information to better understand the user's request."
+                        )
+            except Exception as e:
+                logger.error(f"Error processing data packet: {e}")
+
         @session.on("user_speech_committed")
         def on_user_speech(msg: voice.UserInputTranscribedEvent):
             logger.info(f"USER: {msg.text}")
