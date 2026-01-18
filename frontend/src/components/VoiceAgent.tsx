@@ -178,18 +178,18 @@ export const VoiceAgent: React.FC = () => {
     <button
       onClick={handleToggle}
       disabled={isLoading}
-      className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-2xl transition-all ${
+      className={`flex items-center gap-3 px-8 py-4 rounded-full border-2 shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all ${
         isLoading 
           ? 'bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed' 
-          : 'bg-emerald-500 text-zinc-950 border-emerald-400 hover:bg-emerald-400 hover:scale-105 active:scale-95'
+          : 'bg-emerald-500 text-zinc-950 border-emerald-400 hover:bg-emerald-400 hover:scale-105 active:scale-95 hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]'
       }`}
     >
       {isLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="w-6 h-6 animate-spin" />
       ) : (
-        <Mic className="w-4 h-4" />
+        <Mic className="w-6 h-6" />
       )}
-      <span className="text-sm font-bold tracking-tight">
+      <span className="text-lg font-black uppercase tracking-tighter">
         {isLoading ? 'Connecting...' : 'Ask a question!'}
       </span>
     </button>
