@@ -175,9 +175,15 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset, onWorldLoade
     // Load the asset
     onAsset?.(objectUrl);
     
+    const simulation = getSimulation();
+    const world = simulation.getWorld();
+    if (world.clear) {
+      world.clear();
+    }
+
     // Also load into the simulation
     const sceneLoader = new SceneLoader();
-    sceneLoader.loadGeneratedAsset(objectUrl, getSimulation())
+    sceneLoader.loadGeneratedAsset(objectUrl, simulation)
       .catch(error => {
         console.error('Failed to load uploaded asset:', error);
         setEvents(prev => [...prev, { 
@@ -195,12 +201,20 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset, onWorldLoade
 
   const handleWorldSelect = (filename: string) => {
     setIsWorldPickerOpen(false);
-    const url = `/worlds/${filename}`;
+    // Append timestamp to prevent caching
+    const url = `/worlds/${filename}?t=${Date.now()}`;
     onAsset?.(url);
     
+    const simulation = getSimulation();
+    const world = simulation.getWorld();
+    // Clear existing entities to prevent stacking
+    if (world.clear) {
+      world.clear();
+    }
+
     // Also load into the simulation
     const sceneLoader = new SceneLoader();
-    sceneLoader.loadGeneratedAsset(url, getSimulation())
+    sceneLoader.loadGeneratedAsset(url, simulation)
       .catch(error => {
         console.error('Failed to load selected world:', error);
       });
