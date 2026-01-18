@@ -2,6 +2,7 @@ export interface BlenderGenerationRequest {
   prompt: string;
   sessionId?: string;
   parentVersionId?: string;
+  cameraHeight?: number;
 }
 
 export type BlenderGenerationEvent =
@@ -87,7 +88,8 @@ function createLocalServerStream(request: BlenderGenerationRequest): {
         body: JSON.stringify({ 
           prompt, 
           sessionId: request.sessionId,
-          parentVersionId: request.parentVersionId
+          parentVersionId: request.parentVersionId,
+          cameraHeight: request.cameraHeight
         })
       });
 

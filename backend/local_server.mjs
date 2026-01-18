@@ -34,7 +34,7 @@ function getMcpClient() {
   return mcpClientPromise;
 }
 
-function createJob(prompt, sessionId, parentVersionId) {
+function createJob(prompt, sessionId, parentVersionId, cameraHeight) {
   const id = crypto.randomBytes(8).toString('hex');
   const outputName = `worldweaver_${id}.glb`;
   const outputPath = join(frontendPublicDir, outputName);
@@ -46,6 +46,7 @@ function createJob(prompt, sessionId, parentVersionId) {
     prompt,
     sessionId: sessionId || crypto.randomBytes(4).toString('hex'),
     parentVersionId,
+    cameraHeight,
     outputName,
     outputPath,
     blendPath,
@@ -201,6 +202,9 @@ async function runMcpJob(job) {
 
     const system = `You are a professional Blender artist.
 ${isFollowUp ? 'You are EDITING an existing scene. The previous conversation contains the context of what has been built.' : 'Clear the scene first with "import bpy; bpy.ops.object.select_all(action=\'SELECT\'); bpy.ops.object.delete()"'}
+The user is viewing the scene through a camera at an eye-level height of ${job.cameraHeight || 1.6} meters. 
+Ensure that all objects (doors, tables, chairs, ceilings) are scaled realistically relative to this human eye-level height. 
+For example, a standard door should be around 2.0-2.2 meters high, a table around 0.75 meters, and a chair seat around 0.45 meters.
 Use execute_blender_code for all actions. End with "SCENE_COMPLETE".`;
 
     let turn = 0;
@@ -370,8 +374,8 @@ const server = http.createServer(async (req, res) => {
     req.on('data', c => body += c);
     req.on('end', () => {
       try {
-        const { prompt, sessionId, parentVersionId } = JSON.parse(body);
-        const job = createJob(prompt, sessionId, parentVersionId);
+        const { prompt, sessionId, parentVersionId, cameraHeight } = JSON.parse(body);
+        const job = createJob(prompt, sessionId, parentVersionId, cameraHeight);
         runJob(job).catch(e => sendEvent(job, { type: 'complete', message: 'Failed', detail: e.message }));
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({ jobId: job.id, sessionId: job.sessionId }));

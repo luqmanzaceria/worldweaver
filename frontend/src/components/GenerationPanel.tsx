@@ -3,6 +3,7 @@ import { BlenderGenerationEvent, createBlenderGenerationStream } from '../engine
 import { getSimulation } from '../engine/simulation_instance';
 import { SceneLoader } from '../engine/scene_loader';
 import { RotateCcw } from 'lucide-react';
+import { PLAYER_HEIGHT } from '../constants/camera';
 
 interface GenerationPanelProps {
   onAsset?: (url: string) => void;
@@ -45,7 +46,8 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
     const { stream, cancel } = createBlenderGenerationStream({ 
       prompt: targetPrompt,
       sessionId,
-      parentVersionId: parentId
+      parentVersionId: parentId,
+      cameraHeight: PLAYER_HEIGHT
     });
     
     cancelRef.current = cancel;
