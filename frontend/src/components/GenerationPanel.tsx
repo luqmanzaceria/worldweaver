@@ -273,7 +273,7 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
         <button
           onClick={() => handleGenerate(undefined, currentVersionId)}
           disabled={status === 'running' || !prompt.trim()}
-          className="flex-1 rounded-md bg-emerald-500 px-3 py-2 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100 shadow-[0_4px_12px_rgba(16,185,129,0.2)]"
+          className="flex-1 rounded-md bg-emerald-500 px-3 py-2 text-sm font-bold text-zinc-950 transition hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 shadow-[0_4px_12px_rgba(16,185,129,0.2)]"
         >
           {status === 'running' ? 'Thinking...' : history.length > 0 ? 'Update' : 'Generate'}
         </button>

@@ -376,7 +376,7 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                                 Walk
                             </button>
                             <div 
-                                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-blue-500 rounded-full transition-all duration-200 ease-out shadow-lg ${isFlying ? 'left-1' : 'left-[calc(50%+1px)]'}`}
+                                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-emerald-500 rounded-full transition-all duration-200 ease-out shadow-lg ${isFlying ? 'left-1' : 'left-[calc(50%+1px)]'}`}
                             />
                         </div>
                     </div>
