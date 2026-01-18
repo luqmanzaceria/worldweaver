@@ -25,7 +25,12 @@ const App: React.FC = () => {
           <h1 className="text-lg font-bold tracking-tight text-white">World Weaver</h1>
         </div>
 
-        <div className="flex bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-lg p-1 shadow-xl pointer-events-auto">
+        <div 
+          className="flex bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-lg p-1 shadow-xl pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={() => setIsTeacherMode(true)}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
@@ -50,7 +55,12 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-lg p-1 shadow-xl pointer-events-auto">
+        <div 
+          className="flex bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-lg p-1 shadow-xl pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={() => setIsFlying(true)}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
