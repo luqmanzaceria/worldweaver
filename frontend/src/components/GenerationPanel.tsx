@@ -2,11 +2,13 @@ import React, { useCallback, useRef, useState } from 'react';
 import { BlenderGenerationEvent, createBlenderGenerationStream } from '../engine/blender_bridge';
 import { getSimulation } from '../engine/simulation_instance';
 import { SceneLoader } from '../engine/scene_loader';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Upload, FolderOpen } from 'lucide-react';
 import { PLAYER_HEIGHT } from '../constants/camera';
+import WorldPicker from './WorldPicker';
 
 interface GenerationPanelProps {
   onAsset?: (url: string) => void;
+  onWorldLoaded?: () => void;
 }
 
 interface Version {
@@ -15,7 +17,7 @@ interface Version {
   glbUrl: string;
 }
 
-const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
+const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset, onWorldLoaded }) => {
   const [prompt, setPrompt] = useState('');
   const [status, setStatus] = useState<'idle' | 'running' | 'complete' | 'cancelled'>('idle');
   const [events, setEvents] = useState<BlenderGenerationEvent[]>([]);
@@ -24,9 +26,11 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
   const [currentVersionId, setCurrentVersionId] = useState<string | undefined>(undefined);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [isWorldPickerOpen, setIsWorldPickerOpen] = useState(false);
   
   const cancelRef = useRef<() => void>(() => undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const localMode = import.meta.env.VITE_BLENDER_LOCAL === 'true';
   const apiBase = import.meta.env.VITE_BLENDER_API_URL ?? 'http://localhost:8787';
 
@@ -161,17 +165,75 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
     setStatus('cancelled');
   }, []);
 
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Create a URL for the local file
+    const objectUrl = URL.createObjectURL(file);
+    
+    // Load the asset
+    onAsset?.(objectUrl);
+    
+    // Also load into the simulation
+    const sceneLoader = new SceneLoader();
+    sceneLoader.loadGeneratedAsset(objectUrl, getSimulation())
+      .catch(error => {
+        console.error('Failed to load uploaded asset:', error);
+        setEvents(prev => [...prev, { 
+          type: 'status', 
+          message: 'Failed to load file', 
+          detail: error instanceof Error ? error.message : String(error) 
+        }]);
+      });
+
+    // Reset input so the same file can be selected again if needed
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [onAsset]);
+
+  const handleWorldSelect = (filename: string) => {
+    setIsWorldPickerOpen(false);
+    const url = `/worlds/${filename}`;
+    onAsset?.(url);
+    
+    // Also load into the simulation
+    const sceneLoader = new SceneLoader();
+    sceneLoader.loadGeneratedAsset(url, getSimulation())
+      .catch(error => {
+        console.error('Failed to load selected world:', error);
+      });
+      
+    // Notify parent to disable teacher mode
+    onWorldLoaded?.();
+  };
+
   return (
-    <div 
-      className="absolute top-4 right-4 w-[380px] rounded-lg border border-zinc-700 bg-zinc-900/80 p-4 text-zinc-100 shadow-xl backdrop-blur-md pointer-events-auto flex flex-col max-h-[90vh]"
+    <>
+      <div 
+        className="absolute top-4 right-4 w-[380px] rounded-lg border border-zinc-700 bg-zinc-900/80 p-4 text-zinc-100 shadow-xl backdrop-blur-md pointer-events-auto flex flex-col max-h-[90vh]"
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold tracking-tight text-white">Create a World</h2>
-        <div className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500 font-medium uppercase tracking-wider">
-          Agent Mode
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept=".glb,.gltf"
+          className="hidden"
+        />
+        <div className="flex gap-2">
+            <button 
+            onClick={() => setIsWorldPickerOpen(true)}
+            className="flex items-center gap-1.5 rounded bg-emerald-500 hover:bg-emerald-400 px-2 py-1 text-[10px] text-zinc-950 font-bold uppercase tracking-wider transition-colors shadow-sm"
+            >
+            <FolderOpen className="w-3 h-3" />
+            Load World
+            </button>
         </div>
       </div>
 
@@ -317,6 +379,13 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
         </div>
       )}
     </div>
+
+    <WorldPicker 
+      isOpen={isWorldPickerOpen} 
+      onClose={() => setIsWorldPickerOpen(false)}
+      onSelectWorld={handleWorldSelect}
+    />
+    </>
   );
 };
 
