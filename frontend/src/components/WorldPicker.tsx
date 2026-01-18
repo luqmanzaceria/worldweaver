@@ -32,7 +32,7 @@ const WorldPicker: React.FC<WorldPickerProps> = ({ isOpen, onClose, onSelectWorl
         <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
           <div className="flex items-center gap-2">
             <Globe className="w-5 h-5 text-emerald-500" />
-            <h2 className="text-lg font-bold text-white">Select a World</h2>
+            <h2 className="text-lg font-bold text-white">Load World</h2>
           </div>
           <button 
             onClick={onClose}
@@ -72,7 +72,7 @@ const WorldPicker: React.FC<WorldPickerProps> = ({ isOpen, onClose, onSelectWorl
 
         <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 text-xs text-zinc-500 flex justify-between items-center">
             <span>Local Library</span>
-            <span className="font-mono opacity-50">./frontend/public/worlds</span>
+            {/* <span className="font-mono opacity-50">./frontend/public/worlds</span> */}
         </div>
       </div>
     </div>

@@ -8,7 +8,7 @@ import WorldPicker from './WorldPicker';
 
 interface GenerationPanelProps {
   onAsset?: (url: string) => void;
-  onWorldLoaded?: () => void;
+  onWorldLoaded?: (worldName?: string) => void;
 }
 
 interface Version {
@@ -220,7 +220,12 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset, onWorldLoade
       });
       
     // Notify parent to disable teacher mode
-    onWorldLoaded?.();
+    const formattedName = filename
+      .replace('.glb', '')
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .trim();
+    onWorldLoaded?.(formattedName);
   };
 
   return (

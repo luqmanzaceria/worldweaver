@@ -10,6 +10,7 @@ const App: React.FC = () => {
   const [assetUrl, setAssetUrl] = useState('/worlds/dummy.glb');
   const [isTeacherMode, setIsTeacherMode] = useState(true);
   const [isFlying, setIsFlying] = useState(true);
+  const [overshootPrompt, setOvershootPrompt] = useState<string | undefined>(undefined);
 
   console.log('[App] Current Asset URL:', assetUrl);
 
@@ -103,12 +104,15 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {isTeacherMode && <GenerationPanel onAsset={setAssetUrl} onWorldLoaded={() => {
+      {isTeacherMode && <GenerationPanel onAsset={setAssetUrl} onWorldLoaded={(worldName) => {
         setIsTeacherMode(false);
         setIsFlying(false);
+        if (worldName) {
+            setOvershootPrompt(`Describe what you see. It is ${worldName}, give real dates, details, and events about this landscape. Your audience is a grade 10 history class.`);
+        }
       }} />}
       <VoiceAgent />
-      <OvershootVision />
+      <OvershootVision initialPrompt={overshootPrompt} />
     </div>
   );
 };
