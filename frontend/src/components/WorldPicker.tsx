@@ -10,7 +10,7 @@ interface WorldPickerProps {
 const WorldPicker: React.FC<WorldPickerProps> = ({ isOpen, onClose, onSelectWorld }) => {
   const [worlds, setWorlds] = useState<string[]>([
     'HistoricalRomeCity.glb',
-    'MachuPicchu.glb',
+    // 'MachuPicchu.glb',
     'TheGreatWallOfChina.glb',
     'dummy.glb'
   ]);

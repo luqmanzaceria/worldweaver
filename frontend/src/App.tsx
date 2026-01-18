@@ -103,7 +103,10 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {isTeacherMode && <GenerationPanel onAsset={setAssetUrl} onWorldLoaded={() => setIsTeacherMode(false)} />}
+      {isTeacherMode && <GenerationPanel onAsset={setAssetUrl} onWorldLoaded={() => {
+        setIsTeacherMode(false);
+        setIsFlying(false);
+      }} />}
       <VoiceAgent />
       <OvershootVision />
     </div>
