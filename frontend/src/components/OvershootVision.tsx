@@ -107,14 +107,34 @@ const OvershootVision: React.FC = () => {
 
   return (
     <div 
-      className="absolute bottom-4 right-4 w-[480px] bg-black/80 backdrop-blur-md p-4 rounded-lg text-white border border-white/10 shadow-xl z-50 pointer-events-auto"
+      className="absolute bottom-4 right-4 w-[640px] bg-black/80 backdrop-blur-md p-4 rounded-lg text-white border border-white/10 shadow-xl z-50 pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center gap-2 mb-4 border-b border-white/10 pb-2">
-        <Camera className="w-5 h-5 text-blue-400" />
-        <h2 className="font-semibold">Overshoot Vision</h2>
+      <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2">
+          <Camera className="w-5 h-5 text-blue-400" />
+          <h2 className="font-semibold">Overshoot Vision</h2>
+        </div>
+        <button
+          onClick={isActive ? stopStream : startStream}
+          className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            isActive 
+              ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' 
+              : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30'
+          }`}
+        >
+          {isActive ? (
+            <>
+              <StopCircle className="w-3 h-3" /> Stop
+            </>
+          ) : (
+            <>
+              <Play className="w-3 h-3" /> Start
+            </>
+          )}
+        </button>
       </div>
 
       <div className="space-y-4">
@@ -132,25 +152,6 @@ const OvershootVision: React.FC = () => {
                      Camera Off
                  </div>
              )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex gap-2">
-            {!isActive ? (
-                <button
-                    onClick={startStream}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded flex items-center justify-center gap-2 transition-colors"
-                >
-                    <Play className="w-4 h-4" /> Start Stream
-                </button>
-            ) : (
-                <button
-                    onClick={stopStream}
-                    className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 px-4 rounded flex items-center justify-center gap-2 transition-colors"
-                >
-                    <StopCircle className="w-4 h-4" /> Stop
-                </button>
-            )}
         </div>
 
         {/* Prompt Input */}
@@ -178,7 +179,6 @@ const OvershootVision: React.FC = () => {
 
         {/* Result Output */}
         <div className="space-y-1">
-            <label className="text-xs text-white/60">Analysis Result</label>
             <div 
                 ref={resultRef}
                 className="h-32 bg-black/30 rounded p-2 text-sm overflow-y-auto font-mono text-green-400 border border-white/5 whitespace-pre-wrap scroll-smooth"
