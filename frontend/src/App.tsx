@@ -7,7 +7,7 @@ import VoiceAgent from './components/VoiceAgent';
 import OvershootVision from './components/OvershootVision';
 
 const App: React.FC = () => {
-  const [assetUrl, setAssetUrl] = useState('/worlds/dummy.glb');
+  const [assetUrl, setAssetUrl] = useState('/worlds/FishingVillage.glb');
   const [isTeacherMode, setIsTeacherMode] = useState(true);
   const [isFlying, setIsFlying] = useState(true);
   const [overshootPrompt, setOvershootPrompt] = useState<string | undefined>(undefined);
