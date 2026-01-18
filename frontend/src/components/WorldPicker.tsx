@@ -8,20 +8,17 @@ interface WorldPickerProps {
 }
 
 const WorldPicker: React.FC<WorldPickerProps> = ({ isOpen, onClose, onSelectWorld }) => {
-  const [worlds, setWorlds] = useState<string[]>([]);
+  const [worlds, setWorlds] = useState<string[]>([
+    'HistoricalRomeCity.glb',
+    'MachuPicchu.glb',
+    'TheGreatWallOfChina.glb',
+    'dummy.glb'
+  ]);
 
-  useEffect(() => {
-    if (isOpen) {
-      // In a real app, this would be an API call. 
-      // For now, we'll simulate it or assume we know the files.
-      // Since we can't list files in the browser, we'll use a hardcoded list or fetch a manifest if it existed.
-      // However, for this environment, we know there is 'dummy.glb'.
-      // To make it dynamic in a real app, we'd need a backend endpoint listing /public/worlds.
-      // We'll mock it for now based on the LS result, but in a real React app without backend, 
-      // we can't dynamically scan public folder.
-      setWorlds(['dummy.glb']); 
-    }
-  }, [isOpen]);
+  // If you want to auto-refresh this list or make it dynamic without a backend,
+  // you would typically need to move these assets to `src/assets` and use import.meta.glob,
+  // or use a build script to generate a JSON manifest.
+  // For now, per user request, we are using a static local list.
 
   if (!isOpen) return null;
 
@@ -55,7 +52,12 @@ const WorldPicker: React.FC<WorldPickerProps> = ({ isOpen, onClose, onSelectWorl
                 <Globe className="w-6 h-6 text-emerald-500" />
               </div>
               <span className="text-sm font-medium text-zinc-200 group-hover:text-emerald-400 truncate w-full">
-                {world.replace('.glb', '')}
+                {world
+                  .replace('.glb', '')
+                  .replace(/_/g, ' ')
+                  .replace(/([A-Z])/g, ' $1') // Add space before uppercase letters
+                  .trim() // Remove leading space if the first letter was uppercase
+                }
               </span>
             </button>
           ))}
@@ -68,8 +70,8 @@ const WorldPicker: React.FC<WorldPickerProps> = ({ isOpen, onClose, onSelectWorl
         </div>
 
         <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 text-xs text-zinc-500 flex justify-between items-center">
-            <span></span>
-            <span>Synced to the Cloud</span>
+            <span>Local Library</span>
+            <span className="font-mono opacity-50">./frontend/public/worlds</span>
         </div>
       </div>
     </div>

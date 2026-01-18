@@ -2,7 +2,7 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
 import crypto from 'node:crypto';
 import { AccessToken } from 'livekit-server-sdk';
@@ -13,6 +13,7 @@ const workspaceRoot = dirname(__dirname);
 
 // IMPORTANT: We write to the frontend's public directory so Vite can serve it
 const frontendPublicDir = join(workspaceRoot, 'frontend', 'public', 'generated');
+const worldsDir = join(workspaceRoot, 'frontend', 'public', 'worlds');
 const scriptPath = join(workspaceRoot, 'tools', 'blender', 'generate_world.py');
 
 // Store session histories: sessionId -> { history: [], versions: [] }
@@ -482,6 +483,23 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: e.message }));
       }
     });
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/worlds') {
+    try {
+      const files = await readdir(worldsDir);
+      const glbFiles = files
+        .filter(f => f.toLowerCase().endsWith('.glb'))
+        .sort((a, b) => a.localeCompare(b));
+      
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify(glbFiles));
+    } catch (e) {
+      console.error('Failed to list worlds:', e);
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ error: 'Failed to list worlds' }));
+    }
     return;
   }
 
