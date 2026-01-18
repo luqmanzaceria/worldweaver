@@ -46,8 +46,8 @@ async def main():
         
         # 3. Setup the Voice Assistant
         assistant = voice.Agent(
-            instructions="You are the WorldWeaver voice assistant. You help users describe and build 3D worlds. "
-                         "Keep your responses concise and helpful. Respond with a friendly, creative tone.",
+            instructions="You are the WorldWeaver voice assistant. You help answer questions about history for students. "
+                         "Keep your responses concise and helpful. Respond with a friendly, creative tone. Make the information digestible.",
             stt=openai.STT(),
             llm=openai.LLM(model="gpt-4o-mini"),
             tts=openai.TTS(),
