@@ -11,11 +11,15 @@
     "blender:local": "node ../backend/local_server.mjs"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.19",
+    "@overshoot/sdk": "^0.1.0-alpha.2",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@react-three/rapier": "^2.2.0",
     "clsx": "^2.1.1",
+    "livekit-client": "^2.17.0",
     "lucide-react": "^0.400.0",
+    "overshoot": "^1.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.3.0",
