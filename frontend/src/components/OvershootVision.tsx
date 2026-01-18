@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScreenShareVision } from '../lib/ScreenShareVision';
 
-const SHOW_VIDEO_STREAM = false;
+const SHOW_VIDEO_STREAM = true;
 
 const OvershootVision: React.FC = () => {
   const [isActive, setIsActive] = useState(false);

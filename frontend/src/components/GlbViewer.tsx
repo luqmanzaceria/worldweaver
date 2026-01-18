@@ -291,9 +291,8 @@ function BlenderAxes() {
     );
 }
 
-const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
+const GlbViewer: React.FC<{ url: string; isFlying: boolean }> = ({ url, isFlying }) => {
   const [retryKey, setRetryKey] = useState(0);
-  const [isFlying, setIsFlying] = useState(true);
   const handleRetry = () => setRetryKey(prev => prev + 1);
 
   // Use retryKey for re-mounting on error, but NOT the url.
@@ -342,46 +341,6 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                 </GizmoHelper>
 
             </Canvas>
-            
-            {/* UI Overlay - Styled to match World Weaver brand */}
-            <div className="absolute top-[260px] left-4 text-zinc-100 font-sans text-sm select-none pointer-events-none">
-                <div 
-                    className="bg-zinc-900/80 p-4 rounded-lg border border-zinc-700 backdrop-blur-md shadow-xl pointer-events-auto w-64"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <h2 className="font-bold mb-3 text-white text-base">Controls</h2>
-                    <ul className="space-y-2 text-xs text-zinc-300">
-                        <li className="flex justify-between items-center"><span className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-100 border border-zinc-700">WASD</span> <span className="text-zinc-400">Move</span></li>
-                        <li className="flex justify-between items-center"><span className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-100 border border-zinc-700">Click</span> <span className="text-zinc-400">Look</span></li>
-                        <li className="flex justify-between items-center"><span className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-100 border border-zinc-700">Space</span> <span className="text-zinc-400">{isFlying ? "Up" : "Jump"}</span></li>
-                        {isFlying && <li className="flex justify-between items-center"><span className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-100 border border-zinc-700">Shift</span> <span className="text-zinc-400">Down</span></li>}
-                        <li className="flex justify-between items-center"><span className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-100 border border-zinc-700">ESC</span> <span className="text-zinc-400">Release</span></li>
-                    </ul>
-
-                    <div className="mt-4 pt-4 border-t border-zinc-800">
-                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-center mb-3">Movement Mode</div>
-                        <div className="flex bg-zinc-950/50 rounded-full p-1 relative border border-zinc-800 pointer-events-auto">
-                            <button
-                                onClick={() => setIsFlying(true)}
-                                className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-tighter rounded-full transition-all z-10 ${isFlying ? 'text-zinc-950' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                                Fly
-                            </button>
-                            <button
-                                onClick={() => setIsFlying(false)}
-                                className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-tighter rounded-full transition-all z-10 ${!isFlying ? 'text-zinc-950' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                                Walk
-                            </button>
-                            <div 
-                                className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-emerald-500 rounded-full transition-all duration-200 ease-out shadow-lg ${isFlying ? 'left-1' : 'left-[calc(50%+1px)]'}`}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
         </KeyboardControls>
     </div>
   );
