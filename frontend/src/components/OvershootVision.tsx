@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RealtimeVision } from '@overshoot/sdk';
-import { Camera, StopCircle, Play, RefreshCw } from 'lucide-react';
+import { ScreenShareVision } from '../lib/ScreenShareVision';
+import { Camera, StopCircle, Play, RefreshCw, Monitor } from 'lucide-react';
 
 const SHOW_VIDEO_STREAM = false;
 
@@ -32,14 +33,15 @@ const OvershootVision: React.FC = () => {
   const startStream = async () => {
     try {
       setError(null);
-      // Initialize RealtimeVision with provided configuration
-      const vision = new RealtimeVision({
+      // Initialize ScreenShareVision with provided configuration
+      const vision = new ScreenShareVision({
         // Use local proxy to avoid CORS
         apiUrl: "/api/overshoot", 
         apiKey: "ovs_6bdee043bca8803bb5f33bf5a2b3bc26",
         prompt: prompt,
         // Using minimal configuration as per getting-started docs
         source: { type: 'camera', cameraFacing: 'environment' },
+        processing: { fps: 30 },
         debug: true, // Enable debug logging
         onResult: (res: any) => {
           console.log("HIHIHIIHIH")
@@ -116,7 +118,7 @@ const OvershootVision: React.FC = () => {
     >
       <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-2">
         <div className="flex items-center gap-2">
-          <Camera className="w-5 h-5 text-blue-400" />
+          <Monitor className="w-5 h-5 text-blue-400" />
           <h2 className="font-semibold">Overshoot Vision</h2>
         </div>
         <button
@@ -148,11 +150,11 @@ const OvershootVision: React.FC = () => {
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover transform scale-x-[-1]" // Mirror effect for user facing, remove if environment
+                  className="w-full h-full object-cover" // Removed mirror effect for OBS screen share
               />
               {!isActive && (
                   <div className="absolute inset-0 flex items-center justify-center text-white/30 text-sm">
-                      Camera Off
+                      Camera/OBS Off
                   </div>
               )}
           </div>
