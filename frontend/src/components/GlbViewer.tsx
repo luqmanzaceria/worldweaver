@@ -351,7 +351,7 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <h2 className="font-bold mb-2 text-gray-800">GLB Viewer</h2>
+                    <h2 className="font-bold mb-2 text-gray-800">Controls</h2>
                     <ul className="space-y-1 text-xs text-gray-600">
                         <li><span className="font-mono text-gray-700">WASD</span> Move</li>
                         <li><span className="font-mono text-gray-700">Click</span> Look</li>
@@ -367,8 +367,6 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
                         <span className={`w-2 h-2 rounded-full ${isFlying ? 'bg-blue-500' : 'bg-gray-400'}`} />
                         {isFlying ? "Flying Mode" : "Walking Mode"}
                     </button>
-
-                    <p className="text-xs mt-2 opacity-70 border-t border-gray-200 pt-2 truncate max-w-[200px]" title={url}>File: {url}</p>
                 </div>
             </div>
         </KeyboardControls>
