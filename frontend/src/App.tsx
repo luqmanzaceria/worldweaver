@@ -18,7 +18,6 @@ const App: React.FC = () => {
       <GlbViewer url={assetUrl} />
       <DebugPanel />
       <GenerationPanel onAsset={setAssetUrl} />
-      <McpStatusPanel />
       <VoiceAgent />
       <OvershootVision />
     </div>

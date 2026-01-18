@@ -196,7 +196,7 @@ export const VoiceAgent: React.FC = () => {
   );
 
   return (
-    <div className="fixed bottom-4 left-[280px] z-50 pointer-events-auto">
+    <div className="fixed bottom-4 left-4 z-50 pointer-events-auto">
       {isConnected && token && url ? (
         <LiveKitRoom
           token={token}
