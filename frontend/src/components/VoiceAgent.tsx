@@ -77,7 +77,7 @@ const VoiceAgentInner: React.FC<{ onDisconnect: (e: React.MouseEvent) => void }>
 
   return (
     <div 
-        className="flex flex-col items-center gap-4 p-5 bg-zinc-950/95 rounded-xl border border-zinc-800 shadow-2xl backdrop-blur-xl w-72 text-left"
+        className="flex flex-col items-center gap-4 p-5 bg-zinc-900/80 rounded-lg border border-zinc-700 shadow-xl backdrop-blur-md w-72 text-left"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
     >

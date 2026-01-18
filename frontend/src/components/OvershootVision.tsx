@@ -119,7 +119,7 @@ const OvershootVision: React.FC = () => {
 
   return (
     <div 
-      className="absolute bottom-4 right-4 w-[640px] bg-black/80 backdrop-blur-md p-4 rounded-lg text-white border border-white/10 shadow-xl z-50 pointer-events-auto"
+      className="absolute bottom-4 right-4 w-[640px] bg-zinc-900/80 backdrop-blur-md p-4 rounded-lg text-zinc-100 border border-zinc-700 shadow-xl z-50 pointer-events-auto"
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}

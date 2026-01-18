@@ -163,16 +163,14 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
 
   return (
     <div 
-      className="absolute top-4 right-4 w-[380px] rounded-lg border border-zinc-700 bg-zinc-900/90 p-4 text-zinc-100 shadow-2xl backdrop-blur-md pointer-events-auto flex flex-col max-h-[90vh]"
+      className="absolute top-4 right-4 w-[380px] rounded-lg border border-zinc-700 bg-zinc-900/80 p-4 text-zinc-100 shadow-xl backdrop-blur-md pointer-events-auto flex flex-col max-h-[90vh]"
       onPointerDown={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between">
-        <div className="font-bold text-zinc-400 pl-1">
-          Create A World
-        </div>
-        <div className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500 font-medium uppercase">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold tracking-tight text-white">Create a World</h2>
+        <div className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500 font-medium uppercase tracking-wider">
           Agent Mode
         </div>
       </div>
@@ -291,8 +289,8 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
 
       {/* Stream Logs */}
       <div className="mt-4 flex-1 overflow-hidden flex flex-col min-h-0">
-        <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-500 font-bold flex items-center gap-2">
-          <span>Live Stream</span>
+        <div className="mb-2 text-[10px] uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-2">
+          <span>Generation Console</span>
           {status === 'running' && <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
         </div>
         <div 
