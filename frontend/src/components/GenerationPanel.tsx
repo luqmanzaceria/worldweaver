@@ -162,7 +162,12 @@ const GenerationPanel: React.FC<GenerationPanelProps> = ({ onAsset }) => {
   }, []);
 
   return (
-    <div className="absolute top-4 right-4 w-[380px] rounded-lg border border-zinc-700 bg-zinc-900/90 p-4 text-zinc-100 shadow-2xl backdrop-blur-md pointer-events-auto flex flex-col max-h-[90vh]">
+    <div 
+      className="absolute top-4 right-4 w-[380px] rounded-lg border border-zinc-700 bg-zinc-900/90 p-4 text-zinc-100 shadow-2xl backdrop-blur-md pointer-events-auto flex flex-col max-h-[90vh]"
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">World Weaver</h2>
         <div className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-500">

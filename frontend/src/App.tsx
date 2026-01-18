@@ -4,6 +4,7 @@ import GlbViewer from './components/GlbViewer';
 import DebugPanel from './components/DebugPanel';
 import GenerationPanel from './components/GenerationPanel';
 import McpStatusPanel from './components/McpStatusPanel';
+import OvershootVision from './components/OvershootVision';
 
 const App: React.FC = () => {
   const [assetUrl, setAssetUrl] = useState('/worlds/dummy.glb');
@@ -17,6 +18,7 @@ const App: React.FC = () => {
       <DebugPanel />
       <GenerationPanel onAsset={setAssetUrl} />
       <McpStatusPanel />
+      <OvershootVision />
     </div>
   );
 };

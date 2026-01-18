@@ -345,7 +345,12 @@ const GlbViewer: React.FC<{ url: string }> = ({ url }) => {
             
             {/* UI Overlay - Minimal to match Blender's clean look */}
             <div className="absolute top-[260px] left-4 text-black/80 font-sans text-sm select-none pointer-events-none">
-                <div className="bg-[#f0f0f0]/80 p-3 rounded border border-black/10 backdrop-blur-sm shadow-sm pointer-events-auto">
+                <div 
+                    className="bg-[#f0f0f0]/80 p-3 rounded border border-black/10 backdrop-blur-sm shadow-sm pointer-events-auto"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <h2 className="font-bold mb-2 text-gray-800">GLB Viewer</h2>
                     <ul className="space-y-1 text-xs text-gray-600">
                         <li><span className="font-mono text-gray-700">WASD</span> Move</li>

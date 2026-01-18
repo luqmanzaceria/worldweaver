@@ -65,7 +65,12 @@ const McpStatusPanel: React.FC = () => {
           : 'text-zinc-400';
 
   return (
-    <div className="absolute bottom-4 left-4 w-64 rounded-lg border border-zinc-700 bg-zinc-900/80 p-3 text-zinc-100 shadow-xl backdrop-blur-md pointer-events-auto">
+    <div 
+      className="absolute bottom-4 left-4 w-64 rounded-lg border border-zinc-700 bg-zinc-900/80 p-3 text-zinc-100 shadow-xl backdrop-blur-md pointer-events-auto"
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="text-xs uppercase tracking-wide text-zinc-500">MCP Status</div>
       <div className={`mt-1 text-sm font-semibold ${statusColor}`}>
         {status === 'connected'

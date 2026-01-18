@@ -7,9 +7,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/overshoot': {
-        target: 'https://cluster1.overshoot.ai/api/v0.2',
+        target: 'https://cluster1.overshoot.ai',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/overshoot/, ''),
+        ws: true,
+        rewrite: (path) => path.replace(/^\/api\/overshoot/, '/api/v0.2'),
       }
     }
   }

@@ -35,7 +35,12 @@ const DebugPanel: React.FC = () => {
   };
 
   return (
-    <div className="absolute top-4 left-4 p-4 bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-lg shadow-xl text-zinc-100 w-64 pointer-events-auto">
+    <div 
+      className="absolute top-4 left-4 p-4 bg-zinc-900/80 backdrop-blur-md border border-zinc-700 rounded-lg shadow-xl text-zinc-100 w-64 pointer-events-auto"
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center justify-between mb-4 border-b border-zinc-700 pb-2">
         <h2 className="text-lg font-bold flex items-center gap-2">
           <Activity className="w-5 h-5 text-emerald-400" />
