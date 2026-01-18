@@ -51,7 +51,7 @@ const OvershootVision: React.FC<{ initialPrompt?: string }> = ({ initialPrompt }
       const vision = new ScreenShareVision({
         // Use local proxy to avoid CORS
         apiUrl: "/api/overshoot", 
-        apiKey: "ovs_6bdee043bca8803bb5f33bf5a2b3bc26",
+        apiKey: import.meta.env.VITE_OVERSHOOT_API_KEY,
         prompt: prompt,
         // Using minimal configuration as per getting-started docs
         source: { type: 'camera', cameraFacing: 'environment' },
@@ -162,7 +162,7 @@ const OvershootVision: React.FC<{ initialPrompt?: string }> = ({ initialPrompt }
                 ref={resultRef}
                 className="h-48 bg-black/30 rounded p-2 text-sm overflow-y-auto font-mono text-green-400 whitespace-pre-wrap scroll-smooth"
             >
-                {result}
+                {result || "Analyzing view..."}
             </div>
         </div>
 

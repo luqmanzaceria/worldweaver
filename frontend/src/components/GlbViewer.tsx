@@ -14,7 +14,7 @@ const controls = [
   { name: 'down', keys: ['ShiftLeft', 'ShiftRight'] },
 ];
 
-function AsyncModel({ url }: { url: string }) {
+function AsyncModel({ url, isFlying }: { url: string, isFlying: boolean }) {
     const { scene } = useGLTF(url);
     const { camera } = useThree();
     const lastUrl = React.useRef<string | null>(null);
@@ -36,9 +36,16 @@ function AsyncModel({ url }: { url: string }) {
             camera.position.set(spawnX, spawnY, spawnZ);
             
             // Look at the center of the structure at eye level
-            camera.lookAt(center.x, center.y, center.z);
+            if (isFlying) {
+                // In flying mode (teacher), look down at the scene center
+                camera.lookAt(center.x, center.y, center.z);
+            } else {
+                // In walk mode (student), look horizontally flat
+                // We keep the Y position but look at a point far away in the Z direction
+                camera.lookAt(center.x, spawnY, spawnZ - 100);
+            }
         }
-    }, [scene, url, camera]);
+    }, [scene, url, camera, isFlying]);
 
     return <primitive object={scene} />;
 }
@@ -312,7 +319,7 @@ const GlbViewer: React.FC<{ url: string; isFlying: boolean }> = ({ url, isFlying
                 
                 <Suspense fallback={<Placeholder />}>
                     <ModelErrorBoundary fallback={(error) => <ErrorFallback error={error} onRetry={handleRetry} />}>
-                       <AsyncModel key={url} url={url} />
+                       <AsyncModel key={url} url={url} isFlying={isFlying} />
                     </ModelErrorBoundary>
                 </Suspense>
                 
