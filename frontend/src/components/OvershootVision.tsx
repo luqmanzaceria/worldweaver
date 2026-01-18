@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { RealtimeVision } from '@overshoot/sdk';
 import { Camera, StopCircle, Play, RefreshCw } from 'lucide-react';
 
+const SHOW_VIDEO_STREAM = false;
+
 const OvershootVision: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const [result, setResult] = useState<string>('');
@@ -139,20 +141,22 @@ const OvershootVision: React.FC = () => {
 
       <div className="space-y-4">
         {/* Video Preview */}
-        <div className="relative aspect-video bg-black/50 rounded overflow-hidden border border-white/5">
-             <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover transform scale-x-[-1]" // Mirror effect for user facing, remove if environment
-             />
-             {!isActive && (
-                 <div className="absolute inset-0 flex items-center justify-center text-white/30 text-sm">
-                     Camera Off
-                 </div>
-             )}
-        </div>
+        {SHOW_VIDEO_STREAM && (
+          <div className="relative aspect-video bg-black/50 rounded overflow-hidden border border-white/5">
+              <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover transform scale-x-[-1]" // Mirror effect for user facing, remove if environment
+              />
+              {!isActive && (
+                  <div className="absolute inset-0 flex items-center justify-center text-white/30 text-sm">
+                      Camera Off
+                  </div>
+              )}
+          </div>
+        )}
 
         {/* Prompt Input */}
         <div className="space-y-1">
